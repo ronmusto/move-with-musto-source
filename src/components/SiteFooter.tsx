@@ -64,15 +64,6 @@ export function SiteFooter({ profile }: SiteFooterProps) {
                         <Link href="/privacy/">Privacy</Link>
                         <Link href="/terms/">Terms</Link>
                         <Link href="/unsubscribe/">Unsubscribe</Link>
-                        {profile.jakomuCredit.show ? (
-                            <a
-                                href={profile.jakomuCredit.href}
-                                rel="noopener noreferrer"
-                                target="_blank"
-                            >
-                                {profile.jakomuCredit.label}
-                            </a>
-                        ) : null}
                     </nav>
                     {profile.socialLinks.length > 0 ? (
                         <nav className={styles.socialNav} aria-label="Social links">

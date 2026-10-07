@@ -39,8 +39,7 @@
     gap: 1rem;
 }
 
-.brand,
-.credit {
+.brand {
     color: #fff8ee;
     text-decoration: none;
 }
@@ -57,18 +56,6 @@
 .logo {
     height: auto;
     object-fit: contain;
-}
-
-.credit {
-    color: rgb(255 248 238 / 0.78);
-    font-size: 0.9rem;
-    font-weight: 680;
-    text-decoration-color: rgb(215 177 111 / 0.65);
-    text-underline-offset: 0.38rem;
-}
-
-.credit:hover {
-    color: #fff8ee;
 }
 
 .heroLayout {
@@ -307,9 +294,7 @@
 }
 
 .contactPanel a,
-.footer a,
-.builderPanel a,
-.signupBuilderCredit a {
+.footer a {
     color: #17211d;
     text-decoration-color: rgb(183 137 73 / 0.5);
     text-underline-offset: 0.28rem;
@@ -400,11 +385,8 @@
 .signupForm textarea:focus-visible,
 .signupForm button:focus-visible,
 .brand:focus-visible,
-.credit:focus-visible,
 .contactPanel a:focus-visible,
-.footer a:focus-visible,
-.builderPanel a:focus-visible,
-.signupBuilderCredit a:focus-visible {
+.footer a:focus-visible {
     outline: 3px solid #d7b16f;
     outline-offset: 3px;
 }
@@ -445,18 +427,6 @@
     line-height: 1.45;
 }
 
-.signupBuilderCredit {
-    border-left: 3px solid #b78949;
-    background: rgb(183 137 73 / 0.11);
-    padding: 0.72rem 0.85rem;
-    color: rgb(23 33 29 / 0.74);
-    font-weight: 520;
-}
-
-.signupBuilderCredit a {
-    font-weight: 760;
-}
-
 .signupNoteSuccess {
     color: #256241;
     font-weight: 720;
@@ -473,56 +443,6 @@
     width: 1px;
     height: 1px;
     overflow: hidden;
-}
-
-.builderPanel {
-    display: grid;
-    grid-template-columns: minmax(0, 0.85fr) minmax(18rem, 1fr) auto;
-    align-items: center;
-    gap: clamp(1rem, 3vw, 2.2rem);
-    max-width: 72rem;
-    margin: clamp(2rem, 5vw, 4.25rem) auto 0;
-    border-top: 1px solid rgb(23 33 29 / 0.18);
-    border-bottom: 1px solid rgb(23 33 29 / 0.18);
-    padding: clamp(1.35rem, 3vw, 2rem) 0;
-}
-
-.builderPanel .eyebrow {
-    margin-bottom: 0.5rem;
-}
-
-.builderPanel h2 {
-    max-width: 14ch;
-    margin: 0;
-    color: #17211d;
-    font-size: clamp(1.9rem, 3.7vw, 3.35rem);
-    line-height: 1;
-}
-
-.builderPanel p:not(.eyebrow) {
-    margin: 0;
-    color: rgb(23 33 29 / 0.7);
-    font-size: 1rem;
-    line-height: 1.65;
-}
-
-.builderPanel a {
-    display: inline-flex;
-    min-height: 3rem;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #17211d;
-    border-radius: 999px;
-    background: #17211d;
-    color: #fff8ee;
-    padding: 0.82rem 1.15rem;
-    font-weight: 820;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.builderPanel a:hover {
-    background: #24352e;
 }
 
 .footer {
@@ -575,11 +495,6 @@
         align-items: flex-start;
     }
 
-    .credit {
-        max-width: 10rem;
-        text-align: right;
-    }
-
     .heroLayout {
         min-height: auto;
         padding: 7.2rem 1rem 2rem;
@@ -614,17 +529,6 @@
         display: grid;
     }
 
-    .builderPanel {
-        grid-template-columns: 1fr;
-    }
-
-    .builderPanel h2 {
-        max-width: 18ch;
-    }
-
-    .builderPanel a {
-        width: 100%;
-    }
 }
 
 .unsubscribeEmailLink {

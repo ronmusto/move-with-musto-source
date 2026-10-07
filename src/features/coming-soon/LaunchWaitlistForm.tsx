@@ -1,12 +1,11 @@
 'use client';
 
 import { FormEvent, useId, useRef, useState } from 'react';
-import type { ComingSoonCta, ComingSoonSignupMethod } from '@/lib/coming-soon-config';
+import type { ComingSoonSignupMethod } from '@/lib/coming-soon-config';
 import styles from './RealEstateComingSoon.module.css';
 
 type LaunchWaitlistFormProps = {
     action?: string;
-    builderCta: ComingSoonCta;
     contactEmail: string;
     method: ComingSoonSignupMethod;
     privacyVersion: string;
@@ -33,7 +32,6 @@ function readFormValue(formData: FormData, key: string): string {
 
 export function LaunchWaitlistForm({
     action,
-    builderCta,
     contactEmail,
     method,
     privacyVersion,
@@ -200,13 +198,6 @@ export function LaunchWaitlistForm({
                     role={submitState.kind === 'error' || submitState.kind === 'success' ? 'status' : undefined}
                 >
                     <span>{submitState.message}</span>
-                    {submitState.kind === 'success' ? (
-                        <span className={styles.signupBuilderCredit}>
-                            This page was crafted by{' '}
-                            <a href={builderCta.href}>Jakomu</a>. If your own business needs a
-                            polished launch page or website, we can help.
-                        </span>
-                    ) : null}
                 </div>
             )}
         </form>

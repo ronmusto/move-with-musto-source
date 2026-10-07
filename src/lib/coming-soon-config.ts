@@ -5,11 +5,6 @@ export type ComingSoonLogo = {
     alt: string;
 };
 
-export type ComingSoonCta = {
-    label: string;
-    href: string;
-};
-
 export type ComingSoonContact = {
     email: string;
     phone: string;
@@ -50,12 +45,6 @@ export type ComingSoonProfile = {
     privacyVersion: string;
     socialLinks: ComingSoonSocialLink[];
     highlights: string[];
-    builderCta: ComingSoonCta;
-    jakomuCredit: {
-        show: boolean;
-        label: string;
-        href: string;
-    };
 };
 
 export const defaultComingSoonProfile: ComingSoonProfile = {
@@ -91,35 +80,9 @@ export const defaultComingSoonProfile: ComingSoonProfile = {
         'Neighborhood search support with clear local context',
         'Clear communication from early planning through closing day',
     ],
-    builderCta: {
-        label: 'Start a project with Jakomu',
-        href: 'https://jakomu.com',
-    },
-    jakomuCredit: {
-        show: true,
-        label: 'Being built by Jakomu',
-        href: 'https://jakomu.com',
-    },
 };
 
 type PublicEnv = Record<string, string | undefined>;
-
-export function parsePublicBoolean(value: string | undefined, fallback: boolean): boolean {
-    if (value === undefined || value.trim() === '') {
-        return fallback;
-    }
-
-    const normalized = value.trim().toLowerCase();
-    if (['1', 'true', 'yes', 'y', 'on'].includes(normalized)) {
-        return true;
-    }
-
-    if (['0', 'false', 'no', 'n', 'off'].includes(normalized)) {
-        return false;
-    }
-
-    return fallback;
-}
 
 function readEnv(env: PublicEnv, key: string): string | undefined {
     const value = env[key];
@@ -207,16 +170,6 @@ export function resolveComingSoonProfile(env: PublicEnv = process.env): ComingSo
         readEnv(env, 'NEXT_PUBLIC_COMING_SOON_LOGO_ALT') ?? `${clientName} logo`;
     const signupAction = readEnv(env, 'NEXT_PUBLIC_COMING_SOON_SIGNUP_ACTION');
     const unsubscribeAction = readEnv(env, 'NEXT_PUBLIC_COMING_SOON_UNSUBSCRIBE_ACTION');
-    const builderCtaHref =
-        readEnv(env, 'NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_HREF') ??
-        defaultComingSoonProfile.builderCta.href;
-    const builderCtaLabel =
-        readEnv(env, 'NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_LABEL') ??
-        defaultComingSoonProfile.builderCta.label;
-    const showJakomuCredit = parsePublicBoolean(
-        readEnv(env, 'NEXT_PUBLIC_COMING_SOON_SHOW_JAKOMU_CREDIT'),
-        defaultComingSoonProfile.jakomuCredit.show,
-    );
 
     return {
         ...defaultComingSoonProfile,
@@ -244,15 +197,6 @@ export function resolveComingSoonProfile(env: PublicEnv = process.env): ComingSo
             action: unsubscribeAction,
         },
         socialLinks: readSocialLinks(env),
-        builderCta: {
-            ...defaultComingSoonProfile.builderCta,
-            href: builderCtaHref,
-            label: builderCtaLabel,
-        },
-        jakomuCredit: {
-            ...defaultComingSoonProfile.jakomuCredit,
-            show: showJakomuCredit,
-        },
     };
 }
 

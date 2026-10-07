@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defaultRealEstateProfile } from '@/lib/real-estate-profile';
+import { defaultRealEstateProfile, resolveRealEstateProfile } from '@/lib/real-estate-profile';
 import { SiteFooter } from './SiteFooter';
 
 const footerCss = readFileSync(resolve(process.cwd(), 'src/components/SiteFooter.module.css'), 'utf8');
@@ -48,14 +48,20 @@ describe('SiteFooter', () => {
             .toHaveAttribute('href', '/commercial');
     });
 
-    it('opens the Jakomu website credit in a new tab', () => {
-        render(<SiteFooter profile={defaultRealEstateProfile} />);
+    it('keeps legacy builder settings out of the footer', () => {
+        const profile = resolveRealEstateProfile({
+            NEXT_PUBLIC_REAL_ESTATE_SHOW_JAKOMU_CREDIT: 'true',
+            NEXT_PUBLIC_REAL_ESTATE_BUILDER_CTA_LABEL: 'Website by Jakomu',
+            NEXT_PUBLIC_REAL_ESTATE_BUILDER_CTA_HREF: 'https://jakomu.com',
+            NEXT_PUBLIC_COMING_SOON_SHOW_JAKOMU_CREDIT: 'true',
+        });
+        render(<SiteFooter profile={profile} />);
 
-        const jakomuCredit = screen.getByRole('link', { name: /website by jakomu/i });
-
-        expect(jakomuCredit).toHaveAttribute('href', 'https://jakomu.com');
-        expect(jakomuCredit).toHaveAttribute('target', '_blank');
-        expect(jakomuCredit).toHaveAttribute('rel', 'noopener noreferrer');
+        expect(screen.queryByRole('link', { name: /jakomu/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('contentinfo')).not.toHaveTextContent(/jakomu/i);
+        const policyLinks = screen.getByRole('navigation', { name: /policy links/i });
+        expect(within(policyLinks).getAllByRole('link').map((link) => link.textContent))
+            .toEqual(['Privacy', 'Terms', 'Unsubscribe']);
     });
 
     it('keeps brokerage affiliation, Equal Housing, and REALTOR® membership marks separated', () => {

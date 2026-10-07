@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
     buildComingSoonMetadata,
     defaultComingSoonProfile,
-    parsePublicBoolean,
     resolveComingSoonProfile,
 } from './coming-soon-config';
 
@@ -31,11 +30,6 @@ describe('coming soon config', () => {
         expect(profile.privacyVersion).toBe('2026-06-16');
         expect(profile.socialLinks).toEqual([]);
         expect(profile.logo).toBeUndefined();
-        expect(profile.jakomuCredit.show).toBe(true);
-        expect(profile.builderCta).toEqual({
-            label: 'Start a project with Jakomu',
-            href: 'https://jakomu.com',
-        });
     });
 
     it('applies public build-time overrides', () => {
@@ -57,9 +51,6 @@ describe('coming soon config', () => {
             NEXT_PUBLIC_COMING_SOON_UNSUBSCRIBE_ACTION: 'https://forms.example.com/harbor-unsubscribe',
             NEXT_PUBLIC_COMING_SOON_INSTAGRAM_URL: 'https://instagram.example/harbor',
             NEXT_PUBLIC_COMING_SOON_FACEBOOK_URL: 'https://facebook.example/harbor',
-            NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_HREF: 'https://jakomu.com/contact',
-            NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_LABEL: 'Build my page',
-            NEXT_PUBLIC_COMING_SOON_SHOW_JAKOMU_CREDIT: 'false',
         });
 
         expect(profile.clientName).toBe('Harbor House Realty');
@@ -86,18 +77,6 @@ describe('coming soon config', () => {
             { label: 'Instagram', href: 'https://instagram.example/harbor' },
             { label: 'Facebook', href: 'https://facebook.example/harbor' },
         ]);
-        expect(profile.builderCta).toEqual({
-            label: 'Build my page',
-            href: 'https://jakomu.com/contact',
-        });
-        expect(profile.jakomuCredit.show).toBe(false);
-    });
-
-    it('parses public boolean values conservatively', () => {
-        expect(parsePublicBoolean('yes', false)).toBe(true);
-        expect(parsePublicBoolean('0', true)).toBe(false);
-        expect(parsePublicBoolean('not-sure', true)).toBe(true);
-        expect(parsePublicBoolean(undefined, false)).toBe(false);
     });
 
     it('falls back to post for invalid signup methods', () => {

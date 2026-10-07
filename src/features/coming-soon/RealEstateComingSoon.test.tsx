@@ -1,7 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { defaultComingSoonProfile } from '@/lib/coming-soon-config';
+import { defaultComingSoonProfile, resolveComingSoonProfile } from '@/lib/coming-soon-config';
 import { RealEstateComingSoon } from './RealEstateComingSoon';
 
 describe('RealEstateComingSoon', () => {
@@ -21,20 +21,24 @@ describe('RealEstateComingSoon', () => {
         expect(screen.getAllByText(/launching soon/i)[0]).toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /contact move with musto/i })).not.toBeInTheDocument();
         expect(screen.queryByRole('link', { name: /join the private list/i })).not.toBeInTheDocument();
-        expect(screen.getAllByRole('link', { name: /being built by jakomu/i })[0]).toHaveAttribute(
-            'href',
-            'https://jakomu.com',
-        );
-        expect(
-            screen.getByRole('heading', { name: /need a website before your own launch/i }),
-        ).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /start a project with jakomu/i })).toHaveAttribute(
-            'href',
-            'https://jakomu.com',
-        );
+        expect(screen.queryByText(/jakomu/i)).not.toBeInTheDocument();
         expect(screen.getAllByRole('link', { name: /privacy/i })[0]).toHaveAttribute('href', '/privacy/');
         expect(screen.getAllByRole('link', { name: /terms/i })[0]).toHaveAttribute('href', '/terms/');
         expect(screen.getByRole('link', { name: /unsubscribe/i })).toHaveAttribute('href', '/unsubscribe/');
+    });
+
+    it('ignores legacy builder settings without restoring promotional content', () => {
+        const profile = resolveComingSoonProfile({
+            NEXT_PUBLIC_COMING_SOON_SHOW_JAKOMU_CREDIT: 'true',
+            NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_HREF: 'https://jakomu.com',
+            NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_LABEL: 'Start a project with Jakomu',
+        });
+        render(<RealEstateComingSoon profile={profile} />);
+
+        expect(screen.getByRole('main')).not.toHaveTextContent(/jakomu/i);
+        expect(screen.queryByRole('heading', { name: /need a website/i })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /jakomu/i })).not.toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /join the newsletter/i })).toBeInTheDocument();
     });
 
     it('hides social links until they are configured', () => {
@@ -90,7 +94,8 @@ describe('RealEstateComingSoon', () => {
         expect(fetchMock.mock.calls[0][1]?.body).toContain('"termsAccepted":true');
         expect(fetchMock.mock.calls[0][1]?.body).toContain('"privacyAccepted":true');
         expect(await screen.findByText(/you are on the move with musto launch list/i)).toBeInTheDocument();
-        expect(screen.getByRole('status')).toHaveTextContent(/crafted by jakomu/i);
+        expect(screen.getByRole('status')).not.toHaveTextContent(/jakomu/i);
+        expect(within(screen.getByRole('status')).queryByRole('link')).not.toBeInTheDocument();
     });
 
     it('does not open a mail app when no form endpoint is configured', () => {

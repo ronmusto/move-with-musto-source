@@ -35,11 +35,6 @@ export function RealEstateComingSoon({ profile }: RealEstateComingSoonProps) {
                             <span>{profile.clientName}</span>
                         )}
                     </a>
-                    {profile.jakomuCredit.show ? (
-                        <a className={styles.credit} href={profile.jakomuCredit.href}>
-                            {profile.jakomuCredit.label}
-                        </a>
-                    ) : null}
                 </header>
 
                 <div className={styles.heroLayout}>
@@ -68,7 +63,6 @@ export function RealEstateComingSoon({ profile }: RealEstateComingSoonProps) {
                         <h2 id="waitlist-title">Start the conversation early.</h2>
                         <LaunchWaitlistForm
                             action={profile.signup.action}
-                            builderCta={profile.builderCta}
                             contactEmail={profile.contact.email}
                             method={profile.signup.method}
                             privacyVersion={profile.privacyVersion}
@@ -133,18 +127,6 @@ export function RealEstateComingSoon({ profile }: RealEstateComingSoonProps) {
                     </section>
                 </div>
 
-                <section className={styles.builderPanel} aria-labelledby="builder-title">
-                    <div>
-                        <p className={styles.eyebrow}>Built by Jakomu</p>
-                        <h2 id="builder-title">Need a website before your own launch?</h2>
-                    </div>
-                    <p>
-                        Jakomu builds polished websites and practical business tools for local
-                        brands that need to look credible before the full operation is ready.
-                    </p>
-                    <a href={profile.builderCta.href}>{profile.builderCta.label}</a>
-                </section>
-
                 <footer className={styles.footer}>
                     {profile.socialLinks.length > 0 ? (
                         <nav aria-label="Social links">
@@ -160,9 +142,6 @@ export function RealEstateComingSoon({ profile }: RealEstateComingSoonProps) {
                         <a href="/terms/">Terms</a>
                         <a href="/unsubscribe/">Unsubscribe</a>
                     </nav>
-                    {profile.jakomuCredit.show ? (
-                        <a href={profile.jakomuCredit.href}>{profile.jakomuCredit.label}</a>
-                    ) : null}
                 </footer>
             </section>
         </main>

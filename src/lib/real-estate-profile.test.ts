@@ -77,9 +77,6 @@ describe('real estate profile', () => {
             NEXT_PUBLIC_REAL_ESTATE_APPOINTMENT_URL: 'https://calendly.example/harbor',
             NEXT_PUBLIC_REAL_ESTATE_APPOINTMENT_LABEL: 'Book a buyer consult',
             NEXT_PUBLIC_REAL_ESTATE_INSTAGRAM_URL: 'https://instagram.example/harbor',
-            NEXT_PUBLIC_REAL_ESTATE_BUILDER_CTA_HREF: 'https://jakomu.com/contact',
-            NEXT_PUBLIC_REAL_ESTATE_BUILDER_CTA_LABEL: 'Made by Jakomu',
-            NEXT_PUBLIC_REAL_ESTATE_SHOW_JAKOMU_CREDIT: 'false',
         });
 
         expect(profile.brandName).toBe('Harbor House Realty');
@@ -105,7 +102,6 @@ describe('real estate profile', () => {
         expect(profile.socialLinks).toEqual([
             { label: 'Instagram', href: 'https://instagram.example/harbor' },
         ]);
-        expect(profile.jakomuCredit.show).toBe(false);
     });
 
     it('does not connect an unconfigured clone to production submission services', () => {

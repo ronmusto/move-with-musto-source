@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import { getBrandAsset, type BrandAsset } from './brand-assets.generated';
-import {
-    parsePublicBoolean,
-    type ComingSoonSignupMethod,
-} from './coming-soon-config';
+import type { ComingSoonSignupMethod } from './coming-soon-config';
 
 type PublicEnv = Record<string, string | undefined>;
 
@@ -83,12 +80,6 @@ export type RealEstateProfile = {
         brokerageLogo: RealEstateLogo;
         equalHousingLogo: RealEstateLogo;
         realtorLogo: RealEstateLogo;
-    };
-    builderCta: RealEstateCta;
-    jakomuCredit: {
-        show: boolean;
-        label: string;
-        href: string;
     };
 };
 
@@ -301,15 +292,6 @@ export const defaultRealEstateProfile: RealEstateProfile = {
             },
         ),
     },
-    builderCta: {
-        label: 'Website by Jakomu',
-        href: 'https://jakomu.com',
-    },
-    jakomuCredit: {
-        show: true,
-        label: 'Website by Jakomu',
-        href: 'https://jakomu.com',
-    },
 };
 
 export function resolveRealEstateProfile(env: PublicEnv = process.env): RealEstateProfile {
@@ -323,19 +305,6 @@ export function resolveRealEstateProfile(env: PublicEnv = process.env): RealEsta
         readEnv(env, 'NEXT_PUBLIC_REAL_ESTATE_CONTACT_PHONE') ??
         readEnv(env, 'NEXT_PUBLIC_COMING_SOON_CONTACT_PHONE') ??
         defaultRealEstateProfile.contact.phone;
-    const builderCtaHref =
-        readEnv(env, 'NEXT_PUBLIC_REAL_ESTATE_BUILDER_CTA_HREF') ??
-        readEnv(env, 'NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_HREF') ??
-        defaultRealEstateProfile.builderCta.href;
-    const builderCtaLabel =
-        readEnv(env, 'NEXT_PUBLIC_REAL_ESTATE_BUILDER_CTA_LABEL') ??
-        readEnv(env, 'NEXT_PUBLIC_COMING_SOON_BUILDER_CTA_LABEL') ??
-        defaultRealEstateProfile.builderCta.label;
-    const showJakomuCredit = parsePublicBoolean(
-        readEnv(env, 'NEXT_PUBLIC_REAL_ESTATE_SHOW_JAKOMU_CREDIT') ??
-            readEnv(env, 'NEXT_PUBLIC_COMING_SOON_SHOW_JAKOMU_CREDIT'),
-        defaultRealEstateProfile.jakomuCredit.show,
-    );
     const appointmentHref =
         readEnv(env, 'NEXT_PUBLIC_REAL_ESTATE_APPOINTMENT_URL') ??
         readEnv(env, 'NEXT_PUBLIC_REAL_ESTATE_BOOKING_URL') ??
@@ -399,16 +368,6 @@ export function resolveRealEstateProfile(env: PublicEnv = process.env): RealEsta
                 label: defaultRealEstateProfile.ctas.email.label,
                 href: `mailto:${contactEmail}`,
             },
-        },
-        builderCta: {
-            href: builderCtaHref,
-            label: builderCtaLabel,
-        },
-        jakomuCredit: {
-            ...defaultRealEstateProfile.jakomuCredit,
-            href: builderCtaHref,
-            label: builderCtaLabel,
-            show: showJakomuCredit,
         },
         termsVersion: defaultRealEstateProfile.termsVersion,
         privacyVersion: defaultRealEstateProfile.privacyVersion,
