@@ -1,0 +1,410 @@
+.workspaceSingle {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.quickFilters {
+    grid-template-columns:
+        minmax(13rem, 1.65fr)
+        minmax(8.5rem, 0.85fr)
+        minmax(8rem, 0.78fr)
+        minmax(9rem, 0.7fr)
+        minmax(6rem, 0.55fr)
+        minmax(7rem, 0.65fr);
+}
+
+.commercialRail {
+    align-self: start;
+}
+
+.commercialRailCard {
+    gap: 0.75rem;
+}
+
+.commercialRailBody {
+    display: grid;
+    gap: 0.75rem;
+    border: 1px solid rgba(23, 24, 24, 0.1);
+    border-radius: 0.35rem;
+    background:
+        radial-gradient(circle at 88% 12%, rgba(184, 142, 79, 0.18), transparent 38%),
+        linear-gradient(145deg, rgba(49, 95, 91, 0.12), rgba(255, 255, 255, 0.72));
+    padding: 1rem;
+}
+
+.commercialRailBody > strong {
+    color: var(--color-charcoal);
+    font-family: var(--font-heading);
+    font-size: 1.45rem;
+    font-weight: 650;
+    line-height: 1.05;
+}
+
+.commercialRailBody > p {
+    margin: 0;
+    color: rgba(23, 24, 24, 0.68);
+    font-size: 0.8rem;
+    line-height: 1.45;
+}
+
+.commercialRailBody dl {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0;
+    border-top: 1px solid rgba(23, 24, 24, 0.12);
+    padding-top: 0.7rem;
+}
+
+.commercialRailBody dl > div {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.commercialRailBody dt {
+    color: rgba(23, 24, 24, 0.5);
+    font-size: 0.6rem;
+    font-weight: 850;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.commercialRailBody dd {
+    margin: 0;
+    color: var(--color-charcoal);
+    font-size: 0.74rem;
+    font-weight: 760;
+    text-align: right;
+}
+
+.commercialContactButton {
+    display: inline-flex;
+    min-height: 3.5rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #315f5b;
+    border-radius: 0.35rem;
+    background: #315f5b;
+    color: #fffaf5;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.commercialContactButton:hover,
+.commercialContactButton:focus-visible {
+    border-color: #244a47;
+    outline: 3px solid rgba(184, 142, 79, 0.42);
+    outline-offset: 2px;
+    background: #244a47;
+}
+
+.categoryTag,
+.photoCount {
+    position: absolute;
+    z-index: 1;
+    border: 1px solid rgba(255, 250, 245, 0.28);
+    background: rgba(23, 24, 24, 0.82);
+    color: #fffaf5;
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    padding: 0.42rem 0.55rem;
+    text-transform: uppercase;
+}
+
+.commercialListingImage > img {
+    position: absolute;
+    inset: 0;
+}
+
+.categoryTag {
+    top: 0.75rem;
+    left: 0.75rem;
+}
+
+.photoCount {
+    right: 0.75rem;
+    bottom: 0.75rem;
+}
+
+.amountBlock {
+    display: grid;
+    min-width: 0;
+    grid-area: price;
+    gap: 0.2rem;
+}
+
+.amountBlock > span {
+    color: rgba(23, 24, 24, 0.55);
+    font-size: 0.58rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.amountValue {
+    grid-area: auto !important;
+    justify-self: start;
+}
+
+.commercialListingSummary {
+    grid-template-columns: minmax(11rem, 1fr) minmax(0, auto) auto;
+}
+
+.commercialSummaryFacts {
+    min-width: 0;
+    flex-wrap: wrap !important;
+    justify-content: flex-end;
+}
+
+.amountNote {
+    margin: 0;
+    border-left: 2px solid rgba(166, 124, 82, 0.55);
+    color: rgba(23, 24, 24, 0.62);
+    font-size: 0.72rem;
+    line-height: 1.4;
+    padding-left: 0.6rem;
+}
+
+.listingSignals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.listingSignals span {
+    border-radius: 999px;
+    background: rgba(49, 95, 91, 0.08);
+    color: #315f5b;
+    font-size: 0.62rem;
+    font-weight: 850;
+    letter-spacing: 0.05em;
+    padding: 0.38rem 0.58rem;
+    text-transform: uppercase;
+}
+
+.inquiryButton,
+.unavailableActions a {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--color-charcoal);
+    border-radius: 0.35rem;
+    background: var(--color-charcoal);
+    color: #fffaf5;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    padding: 0.62rem 0.85rem;
+    text-decoration: none;
+    text-transform: uppercase;
+}
+
+.inquiryButton:hover,
+.inquiryButton:focus-visible,
+.unavailableActions a:hover,
+.unavailableActions a:focus-visible {
+    border-color: #315f5b;
+    background: #315f5b;
+    outline: 3px solid rgba(49, 95, 91, 0.18);
+    outline-offset: 2px;
+}
+
+.unavailableActions {
+    display: flex;
+    justify-content: center;
+}
+
+.sheetGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.communityCombobox {
+    display: grid;
+    min-width: 0;
+    gap: 0.45rem;
+}
+
+.communityResults {
+    max-height: 16.5rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.communitySelection {
+    display: flex;
+    min-height: 2.25rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    color: rgba(23, 24, 24, 0.62);
+    font-size: 0.76rem;
+    line-height: 1.4;
+}
+
+.communitySelection strong {
+    color: var(--color-charcoal);
+}
+
+.communitySelection button {
+    min-height: 2.25rem;
+    border: 1px solid rgba(49, 95, 91, 0.28);
+    border-radius: 999px;
+    background: rgba(49, 95, 91, 0.08);
+    color: #315f5b;
+    cursor: pointer;
+    flex: 0 0 auto;
+    font-size: 0.65rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    padding: 0.45rem 0.7rem;
+    text-transform: uppercase;
+}
+
+.communitySelection button:hover,
+.communitySelection button:focus-visible {
+    border-color: #315f5b;
+    outline: 3px solid rgba(49, 95, 91, 0.18);
+    outline-offset: 2px;
+    background: rgba(49, 95, 91, 0.14);
+}
+
+.serviceAreaDisclosure {
+    min-width: min(100%, 18rem);
+}
+
+.serviceAreaDisclosure summary {
+    display: inline-flex;
+    min-height: 2.25rem;
+    align-items: center;
+    border: 1px solid rgba(49, 95, 91, 0.24);
+    border-radius: 999px;
+    background: rgba(49, 95, 91, 0.08);
+    color: #315f5b;
+    cursor: pointer;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.25;
+    list-style-position: inside;
+    padding: 0.45rem 0.75rem;
+}
+
+.serviceAreaDisclosure summary:hover,
+.serviceAreaDisclosure summary:focus-visible {
+    border-color: #315f5b;
+    outline: 3px solid rgba(49, 95, 91, 0.18);
+    outline-offset: 2px;
+    background: rgba(49, 95, 91, 0.14);
+}
+
+.serviceAreaList {
+    max-height: 13rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid rgba(23, 24, 24, 0.12);
+    border-radius: 0.35rem;
+    margin-top: 0.55rem;
+    background: #fffaf5;
+    padding: 0.75rem;
+}
+
+.serviceAreaList ul {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem 0.8rem;
+    margin: 0;
+    padding-left: 1.1rem;
+}
+
+.serviceAreaList li {
+    break-inside: avoid;
+    color: rgba(23, 24, 24, 0.72);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+aside.commercialCompliancePanel > .commercialScreenDisclosure {
+    max-height: none;
+    overflow: visible;
+    overscroll-behavior: auto;
+    scrollbar-gutter: auto;
+    padding-right: 0;
+}
+
+.filterHelp {
+    margin: 0;
+    color: rgba(23, 24, 24, 0.62);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
+.bottomPagination {
+    display: flex;
+    justify-content: center;
+    padding: 1.25rem 0 0.5rem;
+}
+
+@media (max-width: 79.5rem) {
+    .quickFilters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 56rem) {
+    .quickFilters {
+        display: none;
+    }
+
+    .commercialRail {
+        display: none;
+    }
+
+    .sheetGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 42rem) {
+    .mobileFilterSummary {
+        grid-template-columns: minmax(0, 1fr) auto;
+        border-radius: 0.8rem;
+    }
+
+    .mobileFilterSummary > span:nth-child(2) {
+        display: none;
+    }
+
+    .mobileFilterSummary > button:last-child {
+        min-width: 5.5rem;
+    }
+
+    .pageSizeControl {
+        display: none;
+    }
+
+    .serviceAreaList ul {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@container property-results (max-width: 48rem) {
+    .commercialListingSummary {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "price status"
+            "facts facts";
+    }
+
+    .commercialSummaryFacts {
+        justify-content: flex-start;
+    }
+}

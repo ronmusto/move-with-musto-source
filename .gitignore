@@ -1,0 +1,39 @@
+out/
+.next/
+.env*
+!.env.example
+coverage/
+coverage-full/
+playwright-report/
+test-results/
+.playwright-mcp/
+/debug.log
+/output/ux-repair-evidence/
+tmp/
+__pycache__/
+node_modules/
+.npm/
+tsconfig.tsbuildinfo
+amplify-deploy.zip
+MLS PIN Exchange data/
+.mls-publish/
+.commercial-mls-publish/
+.mls-geocode-cache/
+.mls-geocode-audit/
+.aws-sam/
+public/mls/
+/public/commercial/current.json
+/public/commercial/generations/
+/move-with-musto-brief-first-purchase.png
+/move-with-musto-brief-midpage.png
+/move-with-musto-properties.png
+coming-soon-out/
+.playwright-cli/
+
+# Private client material and operational output must not enter future commits.
+# Previously tracked files/history require a clean public export, not just ignores.
+/materials/
+/output/
+/Photos/
+/mls-compliance.config.json
+/scripts/mls-coordinate-overrides.local.json

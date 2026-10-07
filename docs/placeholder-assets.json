@@ -1,0 +1,372 @@
+{
+  "sourceImagePixelsUsed": false,
+  "description": "Labeled original-pixel-free replacement assets. Original photography and logos are omitted.",
+  "files": [
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-interior-color.jpg",
+      "width": 4890,
+      "height": 4076,
+      "sha256": "74f125136cf992ea701b77c81404e68254d223dd37c947382ee0307fe9f71a0c"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-studio-standing-bw.jpg",
+      "width": 4480,
+      "height": 6720,
+      "sha256": "80809c9bdd24e8e0d6672867377ae93725ceb9f441a8ad376c6ed92cebd8af15"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-studio-seated-bw.jpg",
+      "width": 4480,
+      "height": 6720,
+      "sha256": "80809c9bdd24e8e0d6672867377ae93725ceb9f441a8ad376c6ed92cebd8af15"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-couch-bw.jpg",
+      "width": 4480,
+      "height": 6720,
+      "sha256": "80809c9bdd24e8e0d6672867377ae93725ceb9f441a8ad376c6ed92cebd8af15"
+    },
+    {
+      "path": "public/images/brand/general/dream-seekers-realty-logo.jpg",
+      "width": 2137,
+      "height": 2137,
+      "sha256": "d4d87fa8ceffe71d13a4fea588e8c7e31584375cff4ac1b5bd8d9a6d10b2fa01"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-couch-color-screenshot.jpg",
+      "width": 1071,
+      "height": 1785,
+      "sha256": "e39773355de2de77359ddc7f70c1db8f044cd6c52fd8c7905cb9526cc83f62bc"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-seated-color-screenshot.jpg",
+      "width": 1069,
+      "height": 1714,
+      "sha256": "328f4c463b6b98be36831b131e6bd732703d500d6c6770e0b3bdeeeb5792ad8b"
+    },
+    {
+      "path": "public/images/brand/general/equal-housing-opportunity-logo-1200w.png",
+      "width": 1130,
+      "height": 1209,
+      "sha256": "e49a395f09f9b5690fc382e3f667a40dfd12ca301d1644c6e1319672af492182"
+    },
+    {
+      "path": "public/images/brand/realtor/realtor-logo-blue.jpg",
+      "width": 450,
+      "height": 499,
+      "sha256": "20f87da2ab8329d3f2ee05217656e15e0ad101a8ab7fdd1e116ec5d7a29739ce"
+    },
+    {
+      "path": "public/images/areas/greater-boston-brownstones-1440w.webp",
+      "width": 1440,
+      "height": 901,
+      "sha256": "2b4d7e72449e3e8774d0b24f834eaa00b18ce63658a073607b8538c514119c99"
+    },
+    {
+      "path": "public/images/areas/greater-boston-brownstones-480w.webp",
+      "width": 480,
+      "height": 300,
+      "sha256": "e4b4290e19ee271790991b6a42771f967f537a5d8a6c6b4ee5365f8c19bf6ca2"
+    },
+    {
+      "path": "public/images/areas/greater-boston-brownstones-960w.webp",
+      "width": 960,
+      "height": 600,
+      "sha256": "72cda2b900d80976dc67d5998f01084b7bb58c14b1f068aa377a232da793d2e1"
+    },
+    {
+      "path": "public/images/areas/greater-boston-brownstones.jpg",
+      "width": 1586,
+      "height": 992,
+      "sha256": "18e9c52b09387eaf9b692ede0fb0e6c2853c65cad959f5281bf56e7f3d01bfba"
+    },
+    {
+      "path": "public/images/areas/greater-boston-brownstones.webp",
+      "width": 1586,
+      "height": 992,
+      "sha256": "caeeafece471de139b90db005cd6a00f42c50f393e3933a749b4e0cda6966e61"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero-1280w.webp",
+      "width": 1280,
+      "height": 590,
+      "sha256": "c0fdc87110f60361e5d199df241353bca5c06818dda588eb26f479ea14adbe47"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero-1600w.webp",
+      "width": 1600,
+      "height": 737,
+      "sha256": "1d0b46ea0c5c4c3d293c4dcb3139bd6936f61ddb7bf2c3e99ff54a8df6d2a92c"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero-640w.webp",
+      "width": 640,
+      "height": 295,
+      "sha256": "bd8437435ecfc2d2658b9fefdd14d6d962409fca493f69fc7732fc8cbcd469b7"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero-768w.webp",
+      "width": 768,
+      "height": 354,
+      "sha256": "a58903d64bdd0f8e767331eeca2819b962aed8d59ba120a45600c8501db178e1"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero-960w.webp",
+      "width": 960,
+      "height": 442,
+      "sha256": "d22c627e08743a3beb63a83938f98cdcd254ed04a4c8c1adbdf4e6f5ece94aba"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero.jpg",
+      "width": 1847,
+      "height": 851,
+      "sha256": "a5a8c92d2cc64b10f117baccb8fea02f1db6647b686716a8f41b660b57e5d0f8"
+    },
+    {
+      "path": "public/images/areas/massachusetts-daytime-hero.webp",
+      "width": 1847,
+      "height": 851,
+      "sha256": "ea98833c8c2c0eba6c4f1b1f40ae4aae8723580caef8e44c178c596c2159490f"
+    },
+    {
+      "path": "public/images/areas/metrowest-leafy-neighborhood-1440w.webp",
+      "width": 1440,
+      "height": 901,
+      "sha256": "2b4d7e72449e3e8774d0b24f834eaa00b18ce63658a073607b8538c514119c99"
+    },
+    {
+      "path": "public/images/areas/metrowest-leafy-neighborhood-480w.webp",
+      "width": 480,
+      "height": 300,
+      "sha256": "e4b4290e19ee271790991b6a42771f967f537a5d8a6c6b4ee5365f8c19bf6ca2"
+    },
+    {
+      "path": "public/images/areas/metrowest-leafy-neighborhood-960w.webp",
+      "width": 960,
+      "height": 600,
+      "sha256": "72cda2b900d80976dc67d5998f01084b7bb58c14b1f068aa377a232da793d2e1"
+    },
+    {
+      "path": "public/images/areas/metrowest-leafy-neighborhood.jpg",
+      "width": 1586,
+      "height": 992,
+      "sha256": "18e9c52b09387eaf9b692ede0fb0e6c2853c65cad959f5281bf56e7f3d01bfba"
+    },
+    {
+      "path": "public/images/areas/metrowest-leafy-neighborhood.webp",
+      "width": 1586,
+      "height": 992,
+      "sha256": "caeeafece471de139b90db005cd6a00f42c50f393e3933a749b4e0cda6966e61"
+    },
+    {
+      "path": "public/images/areas/north-shore-harbor-village-1440w.webp",
+      "width": 1440,
+      "height": 901,
+      "sha256": "2b4d7e72449e3e8774d0b24f834eaa00b18ce63658a073607b8538c514119c99"
+    },
+    {
+      "path": "public/images/areas/north-shore-harbor-village-480w.webp",
+      "width": 480,
+      "height": 300,
+      "sha256": "e4b4290e19ee271790991b6a42771f967f537a5d8a6c6b4ee5365f8c19bf6ca2"
+    },
+    {
+      "path": "public/images/areas/north-shore-harbor-village-960w.webp",
+      "width": 960,
+      "height": 600,
+      "sha256": "72cda2b900d80976dc67d5998f01084b7bb58c14b1f068aa377a232da793d2e1"
+    },
+    {
+      "path": "public/images/areas/north-shore-harbor-village.jpg",
+      "width": 1586,
+      "height": 992,
+      "sha256": "18e9c52b09387eaf9b692ede0fb0e6c2853c65cad959f5281bf56e7f3d01bfba"
+    },
+    {
+      "path": "public/images/areas/north-shore-harbor-village.webp",
+      "width": 1586,
+      "height": 992,
+      "sha256": "caeeafece471de139b90db005cd6a00f42c50f393e3933a749b4e0cda6966e61"
+    },
+    {
+      "path": "public/images/areas/south-shore-harbor-homes-1440w.webp",
+      "width": 1440,
+      "height": 901,
+      "sha256": "2b4d7e72449e3e8774d0b24f834eaa00b18ce63658a073607b8538c514119c99"
+    },
+    {
+      "path": "public/images/areas/south-shore-harbor-homes-480w.webp",
+      "width": 480,
+      "height": 300,
+      "sha256": "e4b4290e19ee271790991b6a42771f967f537a5d8a6c6b4ee5365f8c19bf6ca2"
+    },
+    {
+      "path": "public/images/areas/south-shore-harbor-homes-960w.webp",
+      "width": 960,
+      "height": 600,
+      "sha256": "72cda2b900d80976dc67d5998f01084b7bb58c14b1f068aa377a232da793d2e1"
+    },
+    {
+      "path": "public/images/areas/south-shore-harbor-homes.jpg",
+      "width": 1586,
+      "height": 992,
+      "sha256": "18e9c52b09387eaf9b692ede0fb0e6c2853c65cad959f5281bf56e7f3d01bfba"
+    },
+    {
+      "path": "public/images/areas/south-shore-harbor-homes.webp",
+      "width": 1586,
+      "height": 992,
+      "sha256": "caeeafece471de139b90db005cd6a00f42c50f393e3933a749b4e0cda6966e61"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-couch-color-web-192w.webp",
+      "width": 192,
+      "height": 320,
+      "sha256": "06aedd5e29f2ed14bdce63fe0d5d86ef0bd855a1e9c9d5cfb5ebd07e2d1a3f32"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-couch-color-web-384w.webp",
+      "width": 384,
+      "height": 640,
+      "sha256": "3f978d8d93e4947133d5933d2bcc65cb9f01cfb78ee9ce2a8e832247f057851c"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-couch-color-web-640w.webp",
+      "width": 640,
+      "height": 1067,
+      "sha256": "92273300ead4d846d76d6aeae51e1b0fc94e8d51270fe52f1755b5740b01bcd0"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-couch-color-web.webp",
+      "width": 960,
+      "height": 1600,
+      "sha256": "a3de0ba500aceb2960d01a0a3d5dd5318cdc013bc2e151f768b4fe928c5b0461"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-interior-color-web-1280w.webp",
+      "width": 1280,
+      "height": 1067,
+      "sha256": "937db2afeadf739db5bcca9cbe96b199b24d09944984b379a8678d418260d729"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-interior-color-web-640w.webp",
+      "width": 640,
+      "height": 533,
+      "sha256": "56ecd19ff0216b0b7fdb4e1fa37a1be39d844cc3fc150451471ecbdab300182f"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-interior-color-web.webp",
+      "width": 1800,
+      "height": 1500,
+      "sha256": "2bd5e35bf7529fa99770ae147682801f487d06dcfc453051e353dd08b497211c"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-studio-standing-bw-web-480w.webp",
+      "width": 480,
+      "height": 720,
+      "sha256": "3813e3d81698278f4da6d1794f5508921112cbf68b505a8b4fa68d0ec99ed89e"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-studio-standing-bw-web-768w.webp",
+      "width": 768,
+      "height": 1152,
+      "sha256": "71aeb64793dec076d898e40f2d65b22f63b3f0789f5aea54d3f090b0dce9cce0"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-studio-standing-bw-web-960w.webp",
+      "width": 960,
+      "height": 1440,
+      "sha256": "9e7eae65ac87c14d03d95d654cfa7e31886d7f0be0964a0770e136d78f020987"
+    },
+    {
+      "path": "public/images/brand/agent/mai-ly-musto-studio-standing-bw-web.webp",
+      "width": 1067,
+      "height": 1600,
+      "sha256": "282101f3796cefdf30c6ed720497980972766a7a176a9f8d242704f67a22c089"
+    },
+    {
+      "path": "public/images/brand/general/dream-seekers-realty-logo-192w.png",
+      "width": 192,
+      "height": 192,
+      "sha256": "f81bd0a46958317b37d88bd4de4107c2d3198a6c14dddf3a63990541a0a9f567"
+    },
+    {
+      "path": "public/images/brand/general/dream-seekers-realty-logo-96w.png",
+      "width": 96,
+      "height": 96,
+      "sha256": "0c7e73c1e1a96722d945231ee345bced246f7885063d3efece2d084e09aa76dc"
+    },
+    {
+      "path": "public/images/brand/general/equal-housing-opportunity-logo-1200w-192w.png",
+      "width": 192,
+      "height": 205,
+      "sha256": "10b658e02b73288e17e881b6f1a674d996dc266a84d773b311047e4fceabb1cf"
+    },
+    {
+      "path": "public/images/brand/general/equal-housing-opportunity-logo-1200w-96w.png",
+      "width": 96,
+      "height": 103,
+      "sha256": "a32ebbd504ec60353fdad68140a632d69841b07c7b43502b07633081d4c55584"
+    },
+    {
+      "path": "public/images/brand/realtor/realtor-logo-blue-124w.png",
+      "width": 124,
+      "height": 137,
+      "sha256": "d4f8329a47cd40b69f4cc7a87bdabe6c228ea64053cd10a4b3aa30820f9dfc58"
+    },
+    {
+      "path": "public/images/brand/realtor/realtor-logo-blue-192w.png",
+      "width": 192,
+      "height": 213,
+      "sha256": "7a984f00e94346dcb510cc2134819c03f59d686d41b8c9d6670677a6c7f3049d"
+    },
+    {
+      "path": "public/images/brand/realtor/realtor-logo-blue-62w.png",
+      "width": 62,
+      "height": 69,
+      "sha256": "ae09228cd48c3a16dfb0cc85ed9bcb64cbf68812d81eefe5b99cddbb86f21902"
+    },
+    {
+      "path": "public/images/brand/realtor/realtor-logo-blue-96w.png",
+      "width": 96,
+      "height": 106,
+      "sha256": "ba8d1a24f2810097e2e0c68deeb14219df65880e498ee8ba440abe756a1d268c"
+    },
+    {
+      "path": "public/images/commercial/massachusetts-commercial-streetscape-1280w.webp",
+      "width": 1280,
+      "height": 698,
+      "sha256": "702811c43beb3a7c21eac4a5d23333e81afd225f6676d3de4c00fb1f7f84b1b5"
+    },
+    {
+      "path": "public/images/commercial/massachusetts-commercial-streetscape-480w.webp",
+      "width": 480,
+      "height": 262,
+      "sha256": "9b9f86501e2ca8b4cb6bf559f7fbe00060058d2c8ca2dde415be710b1b0b76ff"
+    },
+    {
+      "path": "public/images/commercial/massachusetts-commercial-streetscape-768w.webp",
+      "width": 768,
+      "height": 419,
+      "sha256": "cfaf6860471ca544fbd118c180259128aa9e006f51d3d57a177054924eef32bc"
+    },
+    {
+      "path": "public/images/commercial/massachusetts-commercial-streetscape-960w.webp",
+      "width": 960,
+      "height": 524,
+      "sha256": "ed26f21e2eeeb8aefc5bb3974e5b25b3010c56b60849bd92fa297c6e8abd42be"
+    },
+    {
+      "path": "public/images/commercial/massachusetts-commercial-streetscape.webp",
+      "width": 1408,
+      "height": 768,
+      "sha256": "6fbed6e2fc9b40ea61adcd3c7398a56857ca6fc0d58d3872c2c9b06d3139f608"
+    },
+    {
+      "path": "public/images/luxury-real-estate-hero.png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "65b695c69f9b5516d656aabc4d0641a33171acdf55311d35387a128ee6a9d13e"
+    }
+  ]
+}

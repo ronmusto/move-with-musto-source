@@ -1,0 +1,89 @@
+.page {
+    --buy-cream: #f7f2ea;
+    --buy-ink: #171817;
+    --buy-muted: #646057;
+    --buy-line: rgba(23, 24, 23, 0.14);
+    --buy-gold: #a67c52;
+    background: var(--buy-cream);
+    color: var(--buy-ink);
+}
+
+.maintenancePage {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+    min-height: calc(100svh - 5rem);
+    place-items: center;
+    padding: clamp(2rem, 6vw, 5rem) var(--space-gutter);
+}
+
+.buyMaintenance {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    width: min(100%, 48rem);
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    gap: 0.9rem;
+    border-top: 1px solid var(--buy-line);
+    border-bottom: 1px solid var(--buy-line);
+    padding: clamp(2.4rem, 6vw, 4.5rem) 0;
+    text-align: center;
+}
+
+.buyMaintenance .eyebrow {
+    margin: 0;
+}
+
+.buyMaintenance h1 {
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    color: var(--buy-ink);
+    font-family: var(--font-heading);
+    font-size: clamp(2.7rem, 6vw, 5.2rem);
+    font-weight: 700;
+    letter-spacing: 0;
+    line-height: 0.94;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.buyMaintenance p:not(.eyebrow) {
+    max-width: 40rem;
+    margin: 0 auto;
+    color: var(--buy-muted);
+    font-size: clamp(1rem, 1.4vw, 1.16rem);
+    line-height: 1.62;
+    overflow-wrap: anywhere;
+}
+
+.eyebrow {
+    margin: 0 0 0.75rem;
+    color: var(--buy-gold);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.15em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.embeddedSearch {
+    padding: 0;
+    background: transparent;
+}
+
+.embeddedSearch > div:first-child {
+    border-top: 1px solid var(--buy-line);
+}
+
+.visuallyHidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}

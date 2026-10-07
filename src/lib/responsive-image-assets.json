@@ -1,0 +1,42 @@
+{
+    "/images/areas/greater-boston-brownstones.webp": {
+        "intrinsicWidth": 1586,
+        "widths": [480, 960, 1440]
+    },
+    "/images/areas/massachusetts-daytime-hero.webp": {
+        "intrinsicWidth": 1847,
+        "quality": 50,
+        "widths": [640, 768, 960, 1280, 1600]
+    },
+    "/images/areas/metrowest-leafy-neighborhood.webp": {
+        "intrinsicWidth": 1586,
+        "widths": [480, 960, 1440]
+    },
+    "/images/areas/north-shore-harbor-village.webp": {
+        "intrinsicWidth": 1586,
+        "widths": [480, 960, 1440]
+    },
+    "/images/areas/south-shore-harbor-homes.webp": {
+        "intrinsicWidth": 1586,
+        "widths": [480, 960, 1440]
+    },
+    "/images/brand/agent/mai-ly-musto-interior-color-web.webp": {
+        "intrinsicWidth": 1800,
+        "widths": [640, 1280]
+    },
+    "/images/brand/agent/mai-ly-musto-couch-color-web.webp": {
+        "intrinsicWidth": 960,
+        "quality": 72,
+        "widths": [192, 384, 640]
+    },
+    "/images/brand/agent/mai-ly-musto-studio-standing-bw-web.webp": {
+        "intrinsicWidth": 1067,
+        "quality": 72,
+        "widths": [480, 768, 960]
+    },
+    "/images/commercial/massachusetts-commercial-streetscape.webp": {
+        "intrinsicWidth": 1408,
+        "quality": 76,
+        "widths": [480, 768, 960, 1280]
+    }
+}

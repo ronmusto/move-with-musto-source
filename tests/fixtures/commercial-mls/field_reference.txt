@@ -1,0 +1,8 @@
+sf|cc|mf|ld|ci|bu|rn|Field|Short|Medium|Long|mh
+0|0|0|0|0|1|0|BU_TYPE|B|Restaurant|Restaurant with liquor|0
+0|0|0|0|1|0|0|CI_TYPE|E|Office|Office|0
+0|0|0|0|1|0|0|SPACE_AVAILABLE|A|For Sale|For Sale|0
+0|0|0|0|1|0|0|SPACE_AVAILABLE|B|For Lease|For Lease|0
+0|0|0|0|1|0|0|SPACE_AVAILABLE|C|For Sale/Lease|For Sale/Lease|0
+0|0|0|1|0|0|0|LD_TYPE|C|Commercial|Commercial land|0
+0|0|0|0|1|0|0|BU_TYPE|B|Wrong class|Wrong cross-class label|0

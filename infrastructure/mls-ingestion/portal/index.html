@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>MLS update portal | Move With Musto</title>
+  <link rel="stylesheet" href="/portal/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">Move With Musto</p>
+      <h1>MLS listing updates</h1>
+      <p class="intro">Upload the newest MLS PIN package, review the results, and publish when everything looks right.</p>
+    </div>
+    <div class="session-actions">
+      <span id="session-label" class="session-label">Signed out</span>
+      <button id="sign-in" class="button button-primary" type="button">Sign in</button>
+      <button id="sign-out" class="button button-secondary" type="button" hidden>Sign out</button>
+    </div>
+  </header>
+
+  <main>
+    <div id="setup-warning" class="notice notice-warning" role="status" hidden>
+      This portal has not been connected to AWS yet. Complete the deployment steps before signing in.
+    </div>
+    <div id="message" class="notice" role="status" aria-live="polite" hidden></div>
+
+    <section id="signed-out-panel" class="card welcome-card">
+      <p class="eyebrow">Private workspace</p>
+      <h2>Sign in to begin</h2>
+      <p>Your account uses an authenticator app. There is no public registration, and MLS files are not retained in browser storage.</p>
+    </section>
+
+    <div id="operator-workspace" hidden>
+      <section class="card upload-card" aria-labelledby="upload-heading">
+        <div class="section-heading">
+          <div>
+            <p class="step-label">Step 1</p>
+            <h2 id="upload-heading">Choose the latest export files</h2>
+            <p>Select the text files from the newest MLS PIN download. Files ending in “(1)” are recognized and stored under the correct name.</p>
+          </div>
+          <span class="safe-badge">Private upload</span>
+        </div>
+
+        <label id="drop-zone" class="drop-zone" for="file-input" tabindex="0">
+          <span class="drop-title">Drop the files here</span>
+          <span>or choose files from your computer</span>
+          <input id="file-input" type="file" accept=".txt,text/plain" multiple>
+        </label>
+
+        <div class="reference-choice">
+          <input id="use-current-references" type="checkbox" checked>
+          <label for="use-current-references">
+            <strong>Use the current reference tables when they are not included</strong>
+            <span>Leave this checked for normal three-day updates. Include all four reference files for the first import.</span>
+          </label>
+        </div>
+
+        <p class="notice">
+          Commercial search is optional. To update it, include <strong>idx_bu.txt</strong>,
+          <strong>idx_ci.txt</strong>, and <strong>idx_ld.txt</strong> together. Commercial
+          listings are validated and published separately and are never geocoded.
+        </p>
+
+        <div class="table-wrap">
+          <table>
+            <caption>File checklist</caption>
+            <thead>
+              <tr><th scope="col">File</th><th scope="col">Needed</th><th scope="col">Status</th></tr>
+            </thead>
+            <tbody id="file-checklist"></tbody>
+          </table>
+        </div>
+
+        <label class="field" for="upload-note">
+          <span>Optional note</span>
+          <input id="upload-note" type="text" maxlength="500" placeholder="For example: Sunday morning Pinergy export">
+        </label>
+
+        <div class="action-row">
+          <button id="upload-files" class="button button-primary" type="button" disabled>Check and upload files</button>
+          <button id="clear-files" class="button button-secondary" type="button" disabled>Clear selection</button>
+          <span id="upload-progress" class="progress-copy" aria-live="polite"></span>
+        </div>
+      </section>
+
+      <section class="card guidance-card" aria-labelledby="workflow-heading">
+        <div class="section-heading">
+          <div>
+            <p class="step-label">Steps 2 and 3</p>
+            <h2 id="workflow-heading">Review before publishing</h2>
+          </div>
+        </div>
+        <ol class="workflow-list">
+          <li><strong>Validate</strong><span>AWS checks the files, Massachusetts boundary, service area, remarks, open houses, and coordinates.</span></li>
+          <li><strong>Review</strong><span>Open the private report and approve only when its totals make sense.</span></li>
+          <li><strong>Publish</strong><span>The current website stays unchanged until the approved update succeeds.</span></li>
+        </ol>
+      </section>
+
+      <section class="runs-section" aria-labelledby="runs-heading">
+        <div class="runs-heading-row">
+          <div>
+            <p class="eyebrow">Update history</p>
+            <h2 id="runs-heading">Recent imports</h2>
+          </div>
+          <button id="refresh-runs" class="button button-secondary" type="button">Refresh</button>
+        </div>
+        <div id="runs-empty" class="card empty-card" hidden>No updates have been uploaded yet.</div>
+        <div id="runs-list" class="runs-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <template id="run-template">
+    <article class="card run-card">
+      <div class="run-topline">
+        <div>
+          <p class="run-date"></p>
+          <h3 class="run-title"></h3>
+        </div>
+        <span class="status-pill"></span>
+      </div>
+      <p class="run-note" hidden></p>
+      <dl class="summary-grid"></dl>
+      <p class="run-help"></p>
+      <div class="run-diagnostic notice notice-error" role="status" hidden>
+        <p class="run-diagnostic-title"></p>
+        <p class="run-diagnostic-message"></p>
+        <a class="run-log-link" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" hidden>
+          Open AWS processing log<span class="visually-hidden"> (opens in a new tab)</span>
+        </a>
+      </div>
+      <div class="run-actions"></div>
+    </article>
+  </template>
+
+  <script src="/portal/config.js"></script>
+  <script type="module" src="/portal/app.js"></script>
+</body>
+</html>

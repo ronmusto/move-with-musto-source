@@ -1,0 +1,552 @@
+.contactPage {
+    background: var(--color-ivory-warm, #f9f6f1);
+    color: var(--color-ink, #1c1b1b);
+    min-height: 100vh;
+    padding: clamp(2.5rem, 5vw, 5rem) var(--space-gutter, 1.5rem)
+        clamp(4rem, 7vw, 7rem);
+}
+
+.shell {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.38fr) minmax(0, 0.62fr);
+    align-items: start;
+    gap: clamp(1.75rem, 4vw, 4rem);
+    width: 100%;
+    margin: 0 auto;
+    max-width: 75rem;
+}
+
+.shell > *,
+.marketDetails > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.sidebar {
+    position: sticky;
+    top: calc(5rem + clamp(1.25rem, 3vw, 2.5rem));
+    align-self: start;
+    display: grid;
+    gap: 1.75rem;
+    min-width: 0;
+    max-width: 100%;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0.25rem;
+}
+
+.portraitFrame {
+    position: relative;
+    isolation: isolate;
+    aspect-ratio: 4 / 3;
+    min-height: 0;
+    background: #efe8df;
+    border: 1px solid rgba(166, 124, 82, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 18px 48px rgba(31, 28, 24, 0.1);
+    overflow: hidden;
+}
+
+.portrait {
+    position: relative;
+    z-index: 0;
+    display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    object-position: center 18%;
+}
+
+.sidebarIntro {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.eyebrow {
+    color: var(--color-gold-text, #7c4f2b);
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    line-height: 1.4;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.sidebarIntro h1,
+.inquiryCard h2 {
+    color: var(--color-charcoal, #171818);
+    font-family: var(--font-heading, Georgia, serif);
+    font-weight: 700;
+    letter-spacing: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.sidebarIntro h1 {
+    font-size: clamp(2rem, 4vw, 3rem);
+    line-height: 1.05;
+}
+
+.sidebarIntro p,
+.lead,
+.advisoryNote li {
+    color: var(--color-charcoal-muted, #5e5e5b);
+    font-size: clamp(1rem, 0.95rem + 0.2vw, 1.12rem);
+    line-height: 1.75;
+    margin: 0;
+}
+
+.marketDetails {
+    display: grid;
+    gap: 1.1rem;
+    margin: 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid rgba(166, 124, 82, 0.22);
+}
+
+.marketDetails div {
+    display: grid;
+    gap: 0.3rem;
+}
+
+.marketDetails dt {
+    color: var(--color-gold-text, #7c4f2b);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.17em;
+    text-transform: uppercase;
+}
+
+.marketDetails dd {
+    color: var(--color-charcoal-muted, #5e5e5b);
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    margin: 0;
+}
+
+.formColumn {
+    display: grid;
+    gap: 1.5rem;
+    min-width: 0;
+    max-width: 100%;
+    scroll-margin-top: 6rem;
+}
+
+.inquiryCard {
+    background: #fff;
+    border: 1px solid rgba(166, 124, 82, 0.16);
+    border-radius: 8px;
+    border-top: 6px solid var(--color-gold, #a67c52);
+    box-shadow: 0 26px 70px rgba(31, 28, 24, 0.12);
+    display: grid;
+    gap: 1.4rem;
+    min-width: 0;
+    max-width: 100%;
+    padding: clamp(2rem, 3.5vw, 3.25rem);
+}
+
+.inquiryCard h2 {
+    font-size: clamp(2.25rem, 4.4vw, 3.9rem);
+    line-height: 0.98;
+    max-width: 15ch;
+}
+
+.lead {
+    max-width: 38rem;
+}
+
+.inquiryForm {
+    border-top: 1px solid rgba(166, 124, 82, 0.2);
+    display: grid;
+    gap: 1.35rem;
+    margin-top: 1rem;
+    padding-top: 2rem;
+}
+
+.directContactActions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    max-width: 38rem;
+}
+
+.directContactActions a {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+    min-height: 3.5rem;
+    justify-content: start;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--color-gold-action, #8a6541);
+    background: var(--color-gold-action, #8a6541);
+    color: #fff;
+    text-decoration: none;
+}
+
+a.directContactSecondaryAction {
+    border-color: rgba(23, 24, 24, 0.22);
+    background: transparent;
+    color: var(--color-charcoal, #171818);
+}
+
+.directContactActions strong {
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.directContactActions span {
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+}
+
+.directContactActions a:hover,
+.directContactActions a:focus-visible {
+    border-color: var(--color-gold-action-hover, #70492f);
+}
+
+.directContactActions a:not(.directContactSecondaryAction):hover {
+    background: var(--color-gold-action-hover, #70492f);
+}
+
+.directContactActions a.directContactSecondaryAction:hover {
+    background: rgba(166, 124, 82, 0.08);
+}
+
+.directContactActions a:focus-visible {
+    outline: 3px solid var(--color-focus, #7c4f2b);
+    outline-offset: 3px;
+}
+
+.nameGrid {
+    display: grid;
+    gap: 1.35rem 2rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.selectionGrid {
+    display: grid;
+    align-items: start;
+    gap: 1.35rem 2rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.selectionLabel {
+    min-height: 2.7em;
+}
+
+.inquiryForm > *,
+.inquiryForm label {
+    display: grid;
+    gap: 0.55rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.inquiryForm label span {
+    color: var(--color-charcoal-muted, #5e5e5b);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.inquiryForm input,
+.inquiryForm select,
+.inquiryForm textarea {
+    min-width: 0;
+    width: 100%;
+    min-height: 3.2rem;
+    border: 0;
+    border-bottom: 2px solid rgba(94, 94, 91, 0.18);
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-charcoal, #171818);
+    font: inherit;
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 0.62rem 0;
+    transition: border-color var(--duration-fast, 180ms) var(--ease-out, ease);
+}
+
+.inquiryForm textarea {
+    min-height: 8.5rem;
+    resize: vertical;
+}
+
+.inquiryForm input:focus,
+.inquiryForm select:focus,
+.inquiryForm textarea:focus {
+    border-color: var(--color-gold, #a67c52);
+    outline: none;
+}
+
+.selectControl {
+    position: relative;
+    min-width: 0;
+}
+
+.selectControl::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: 1.15rem;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-right: 2px solid var(--color-gold-action, #8a6541);
+    border-bottom: 2px solid var(--color-gold-action, #8a6541);
+    pointer-events: none;
+    transform: translateY(-70%) rotate(45deg);
+}
+
+.selectControl select {
+    appearance: none;
+    min-height: 3.75rem;
+    border: 1px solid rgba(166, 124, 82, 0.32);
+    border-radius: 8px;
+    background: #fffaf5;
+    color: var(--color-charcoal, #171818);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.85rem 3rem 0.85rem 1rem;
+    transition:
+        background-color var(--duration-fast, 180ms) var(--ease-out, ease),
+        border-color var(--duration-fast, 180ms) var(--ease-out, ease),
+        box-shadow var(--duration-fast, 180ms) var(--ease-out, ease);
+}
+
+.selectControl select:hover {
+    border-color: rgba(138, 101, 65, 0.72);
+    background: #fff;
+}
+
+.selectControl select:focus,
+.selectControl select:focus-visible {
+    border-color: var(--color-gold-action, #8a6541);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(166, 124, 82, 0.16);
+    outline: none;
+}
+
+.consentRow {
+    align-items: start;
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    color: var(--color-charcoal-muted, #5e5e5b);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    padding-top: 0.3rem;
+}
+
+.consentRow input {
+    accent-color: var(--color-gold, #a67c52);
+    height: 1rem;
+    margin-top: 0.2rem;
+    min-height: 0;
+    width: 1rem;
+}
+
+.consentRow label {
+    display: block;
+}
+
+.consentRow a,
+.formNote a {
+    color: var(--color-charcoal, #171818);
+    font-weight: 700;
+    text-decoration-color: rgba(166, 124, 82, 0.45);
+    text-underline-offset: 0.2rem;
+}
+
+.honeypot {
+    position: absolute;
+    left: -10000px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+.inquiryForm button {
+    justify-self: start;
+    min-height: 3.35rem;
+    border: 1px solid var(--color-gold-action, #8a6541);
+    border-radius: 4px;
+    background: var(--color-gold-action, #8a6541);
+    color: #fff;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    padding: 1rem 1.65rem;
+    text-transform: uppercase;
+    transition:
+        background var(--duration-fast, 180ms) var(--ease-out, ease),
+        border-color var(--duration-fast, 180ms) var(--ease-out, ease),
+        transform var(--duration-fast, 180ms) var(--ease-out, ease);
+}
+
+.inquiryForm button:hover:not(:disabled) {
+    background: var(--color-gold-action-hover, #70492f);
+    border-color: var(--color-gold-action-hover, #70492f);
+    transform: translateY(-1px);
+}
+
+.inquiryForm button:disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.formNote {
+    color: var(--color-charcoal-muted, #5e5e5b);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.formStatusSuccess {
+    color: var(--color-success, #256241);
+    font-weight: 700;
+}
+
+.formStatusError {
+    color: var(--color-error, #8f2f24);
+    font-weight: 700;
+}
+
+.advisoryNote {
+    border-top: 1px solid rgba(166, 124, 82, 0.22);
+    padding-top: 1.3rem;
+}
+
+.advisoryNote ul {
+    display: grid;
+    gap: 0.6rem;
+    list-style: none;
+    margin: 0.7rem 0 0;
+    padding: 0;
+}
+
+.advisoryNote li {
+    position: relative;
+    padding-left: 1.2rem;
+}
+
+.advisoryNote li::before {
+    content: "";
+    position: absolute;
+    top: 0.78em;
+    left: 0;
+    width: 0.42rem;
+    height: 0.42rem;
+    border-radius: 999px;
+    background: var(--color-gold, #a67c52);
+}
+
+.inquiryForm input:focus-visible,
+.inquiryForm select:focus-visible,
+.inquiryForm textarea:focus-visible,
+.inquiryForm button:focus-visible,
+.directContactActions a:focus-visible {
+    outline: 3px solid var(--color-focus, #7c4f2b);
+    outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+    .contactPage {
+        padding-top: 2rem;
+    }
+
+    .shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar {
+        position: static;
+        grid-template-columns: minmax(12rem, 18rem) 1fr;
+        align-items: start;
+        max-height: none;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    .marketDetails {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 680px) {
+    .sidebar {
+        grid-template-columns: minmax(9rem, 0.42fr) minmax(0, 1fr);
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .portraitFrame {
+        align-self: stretch;
+        aspect-ratio: 4 / 5;
+    }
+
+    .sidebarIntro h1 {
+        font-size: clamp(2rem, 8vw, 2.8rem);
+    }
+
+    .sidebarIntro p {
+        font-size: 0.98rem;
+        line-height: 1.6;
+    }
+
+    .nameGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .selectionGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .selectionLabel {
+        min-height: 0;
+    }
+
+    .inquiryCard {
+        padding: 1.5rem;
+    }
+
+    .inquiryCard h2 {
+        font-size: clamp(2.25rem, 10vw, 3.3rem);
+    }
+
+    .directContactActions {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.formRequirement {
+    margin: 0;
+    color: var(--color-charcoal-muted);
+    font-size: var(--text-sm);
+}
+
+.formNote:focus {
+    outline: 3px solid var(--color-gold-action);
+    outline-offset: 3px;
+}
+
+@media (max-width: 440px) {
+    .sidebar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .portraitFrame {
+        aspect-ratio: 16 / 10;
+        max-height: 18rem;
+        width: 100%;
+    }
+
+    .portrait {
+        object-position: center 16%;
+    }
+}

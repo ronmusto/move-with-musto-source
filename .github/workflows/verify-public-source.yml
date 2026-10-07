@@ -1,0 +1,53 @@
+name: Verify public source
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: public-source-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Use Node.js 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            infrastructure/mls-ingestion/package-lock.json
+            infrastructure/mls-ingestion/handlers/package-lock.json
+      - name: Install locked public packages
+        run: |
+          npm ci --ignore-scripts
+          npm run deps:infra
+      - name: Check source and local behavior
+        run: |
+          set -euo pipefail
+          npm run check:public
+          npm run lint
+          npm test
+          npm run test:infra
+          npm run check:infra
+          npm run test:preview
+          npm run build
+          npm run check:public
+      - name: Install isolated Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify fixture browser journeys
+        run: npm run test:e2e:extended

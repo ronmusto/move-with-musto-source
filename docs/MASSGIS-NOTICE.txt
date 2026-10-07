@@ -1,0 +1,19 @@
+Massachusetts municipal geography
+
+Source credit: MassGIS (Bureau of Geographic Information), Commonwealth of Massachusetts EOTSS.
+
+The municipality geometry in src/lib/massachusetts-map.generated.ts and scripts/massachusetts-municipal-geofences.generated.json, and the eight derived maps in public/images/maps/, use the MassGIS Municipalities general-coast data layer (TOWNSSURVEY_POLYM_GENCOAST). Project scripts transform the geometry into SVG paths, service-area geometry, and WebP region maps. These assets contain municipal geography, not MLS listings or MLS property photographs.
+
+Official dataset description:
+https://www.mass.gov/info-details/massgis-data-municipalities
+
+MassGIS data-use policy permits redistribution and derivative works:
+https://www.mass.gov/info-details/learn-about-massgis-data
+https://www.mass.gov/info-details/massgis-frequently-asked-questions
+
+The checked-in generators used this public ArcGIS-hosted mirror:
+https://services8.arcgis.com/o4UVke7qqC8oNJ7j/ArcGIS/rest/services/Massachusetts_Towns_General_Coast/FeatureServer/0/query
+
+The mirror identifies its source as MassGIS, reports a May 2024 source vintage and December 2024 access, and is published under ArcGIS item 7be85ad709d1484baff449096a3f0af3. The mirror itself is not an official MassGIS-owned ArcGIS account. This notice records the existing source chain; it does not imply that a fresh October 2026 official dataset was downloaded or that the geometry was independently compared point-for-point with the current official release.
+
+Use the maps for application display and demonstration. For authoritative municipal boundary determination, consult the official source description and appropriate survey records. Do not interpret these display maps as a survey or warranty of boundary accuracy.

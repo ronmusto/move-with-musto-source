@@ -1,0 +1,89 @@
+customHeaders:
+  - pattern: '**'
+    headers:
+      - key: 'Strict-Transport-Security'
+        value: 'max-age=31536000; includeSubDomains'
+      - key: 'Content-Security-Policy'
+        value: "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com *.google.com https://*.ggpht.com *.googleusercontent.com blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' https://media.mlspin.com https://*.googleapis.com https://*.gstatic.com *.google.com https://*.ggpht.com *.googleusercontent.com data: blob:; connect-src 'self' https://data.movewithmusto.com https://*.googleapis.com *.google.com https://*.gstatic.com data: blob:; font-src 'self' https://fonts.gstatic.com data:; frame-src *.google.com; worker-src 'self' blob:; manifest-src 'self'; upgrade-insecure-requests"
+      - key: 'X-Content-Type-Options'
+        value: 'nosniff'
+      - key: 'X-Frame-Options'
+        value: 'DENY'
+      - key: 'Referrer-Policy'
+        value: 'strict-origin-when-cross-origin'
+      - key: 'Permissions-Policy'
+        value: 'camera=(), microphone=(), geolocation=(), payment=(), usb=()'
+  - pattern: '/_next/static/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=31536000, immutable'
+  - pattern: '/mls/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=60, must-revalidate, s-maxage=300'
+  - pattern: '/images/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=2592000, s-maxage=31536000, stale-while-revalidate=86400'
+  - pattern: '/'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/about/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/buy/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/sell/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/commercial/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/properties/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/privacy/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '/terms/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '**/*.html'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  - pattern: '**/*.txt'
+    headers:
+      - key: 'Cache-Control'
+        value: 'public, max-age=0, must-revalidate, s-maxage=300, stale-while-revalidate=60'
+  # Keep route-specific privacy exceptions after the general HTML/text rules so
+  # they win if Amplify resolves a clean URL to its exported index.html file.
+  - pattern: '/contact/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'no-store'
+  - pattern: '/unsubscribe/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'no-store'
+  - pattern: '/404/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'no-store'
+  - pattern: '/404.html'
+    headers:
+      - key: 'Cache-Control'
+        value: 'no-store'
+  - pattern: '/_not-found/**'
+    headers:
+      - key: 'Cache-Control'
+        value: 'no-store'

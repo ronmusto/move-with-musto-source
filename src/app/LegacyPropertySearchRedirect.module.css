@@ -1,0 +1,45 @@
+.page {
+    display: grid;
+    min-height: min(36rem, calc(100svh - 5rem));
+    place-items: center;
+    padding: clamp(2rem, 8vw, 6rem) var(--space-gutter);
+    background: var(--color-ivory-warm);
+}
+
+.card {
+    width: min(100%, 34rem);
+    padding: clamp(1.5rem, 5vw, 3rem);
+    border-top: 4px solid var(--color-gold);
+    background: #fff;
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+}
+
+.card p {
+    margin: 0;
+    color: var(--color-gold-text);
+    font-size: var(--text-xs);
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.card h1 {
+    margin: 0.8rem 0;
+    font-family: var(--font-heading);
+    font-size: clamp(2rem, 7vw, 3.5rem);
+    line-height: 1;
+}
+
+.card span {
+    color: var(--color-charcoal-muted);
+    line-height: 1.6;
+}
+
+.card a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: var(--color-gold-text);
+    font-weight: 800;
+}

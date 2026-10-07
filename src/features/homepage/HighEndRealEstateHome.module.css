@@ -1,0 +1,11 @@
+/* ═══════════════════════════════════════════════════════════
+   HighEndRealEstateHome — Layout Shell
+   Styles have moved to individual section modules.
+   ═══════════════════════════════════════════════════════════ */
+
+.page {
+    min-height: 100svh;
+    background: var(--color-ivory-warm);
+    color: var(--color-charcoal-soft);
+    font-family: var(--font-body);
+}

@@ -1,0 +1,419 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - |
+        set -euo pipefail
+        : "${PIPELINE_SOURCE_BUCKET_NAME:?}"
+        : "${PIPELINE_SOURCE_OBJECT_KEY:?}"
+        : "${PIPELINE_SOURCE_VERSION_ID:?}"
+        : "${PIPELINE_SOURCE_COMMIT_SHA:?}"
+        : "${PIPELINE_SOURCE_SHA256:?}"
+        : "${PIPELINE_SOURCE_CONTENT_LENGTH:?}"
+        : "${CODEBUILD_SOURCE_VERSION:?}"
+        : "${CODEBUILD_SOURCE_REPO_URL:?}"
+        test "${CODEBUILD_SOURCE_VERSION:-}" = "$PIPELINE_SOURCE_VERSION_ID"
+        test "${CODEBUILD_SOURCE_REPO_URL:-}" = "${PIPELINE_SOURCE_BUCKET_NAME}/${PIPELINE_SOURCE_OBJECT_KEY}"
+        test "$PIPELINE_SOURCE_CONTENT_LENGTH" -gt 0
+        SOURCE_OBJECT_RESPONSE_FILE="${CODEBUILD_SRC_DIR}/.pipeline-source-object.json"
+        aws s3api head-object --bucket "$PIPELINE_SOURCE_BUCKET_NAME" --key "$PIPELINE_SOURCE_OBJECT_KEY" --version-id "$PIPELINE_SOURCE_VERSION_ID" --checksum-mode ENABLED --output json --no-cli-pager > "$SOURCE_OBJECT_RESPONSE_FILE"
+        node - "$SOURCE_OBJECT_RESPONSE_FILE" <<'NODE'
+        const { readFileSync } = require('node:fs');
+        const response = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+        const required = (name) => {
+          const value = String(process.env[name] ?? '');
+          if (!value) throw new Error(`Missing required ${name}.`);
+          return value;
+        };
+        const expectedHex = required('PIPELINE_SOURCE_SHA256').toLowerCase();
+        const expectedCommit = required('PIPELINE_SOURCE_COMMIT_SHA').toLowerCase();
+        const expectedLength = Number(required('PIPELINE_SOURCE_CONTENT_LENGTH'));
+        const expectedChecksum = Buffer.from(expectedHex, 'hex').toString('base64');
+        if (
+          !/^[a-f0-9]{64}$/.test(expectedHex) ||
+          !/^[a-f0-9]{40,64}$/.test(expectedCommit) ||
+          !Number.isSafeInteger(expectedLength) ||
+          expectedLength <= 0
+        ) {
+          throw new Error('The pipeline source commit, checksum, or content length is invalid.');
+        }
+        if (
+          response.VersionId !== required('PIPELINE_SOURCE_VERSION_ID') ||
+          response.ChecksumSHA256 !== expectedChecksum ||
+          response.ContentLength !== expectedLength ||
+          response.Metadata?.['source-schema'] !== 'move-with-musto.pipeline-source.v1' ||
+          response.Metadata?.['source-sha256'] !== expectedHex ||
+          response.Metadata?.['git-commit'] !== expectedCommit
+        ) {
+          throw new Error('The downloaded pipeline source failed its version, checksum, length, or provenance check.');
+        }
+        NODE
+      - npm ci --no-audit --no-fund
+  pre_build:
+    commands:
+      - |
+        set -euo pipefail
+        test -n "${RUN_ID:-}"
+        test "${PIPELINE_ACTION:-}" = "VALIDATE" -o "${PIPELINE_ACTION:-}" = "PUBLISH"
+        export RAW_DIR="${CODEBUILD_SRC_DIR}/.cloud-mls-raw"
+        export REVIEW_DIR="${CODEBUILD_SRC_DIR}/.cloud-mls-review"
+        export OUTPUT_DIR="${CODEBUILD_SRC_DIR}/.mls-publish"
+        export COMMERCIAL_OUTPUT_DIR="${CODEBUILD_SRC_DIR}/.commercial-mls-publish"
+        test "${INCLUDES_COMMERCIAL:-false}" = "true" -o "${INCLUDES_COMMERCIAL:-false}" = "false"
+        export CACHE_FILE="${CODEBUILD_SRC_DIR}/.cloud-coordinate-cache/google-geocoding-cache.json"
+        export CACHE_OBJECT_RESPONSE_FILE="${CODEBUILD_SRC_DIR}/.cloud-coordinate-cache/object-response.json"
+        export CACHE_ETAG_FILE="${CODEBUILD_SRC_DIR}/.cloud-coordinate-cache/reviewed-cache.etag"
+        export CACHE_PROVENANCE_LEDGER_SHA256_FILE="${CODEBUILD_SRC_DIR}/.cloud-coordinate-cache/reviewed-cache-ledger.sha256"
+        export CACHE_ETAG=""
+        export CACHE_PROVENANCE_LEDGER_SHA256=""
+        export AUDIT_FILE="${CODEBUILD_SRC_DIR}/.cloud-geocode-audit/google-geocoding-requests.jsonl"
+        export IMMUTABLE_AUDIT_EVENT_PREFIX="geocoding/${RUN_ID}/${CODEBUILD_BUILD_NUMBER}/events"
+        mkdir -p "$RAW_DIR" "$REVIEW_DIR" "$(dirname "$CACHE_FILE")" "$(dirname "$AUDIT_FILE")"
+        if [ "$PIPELINE_ACTION" = "VALIDATE" ]; then
+          if [ -z "${GOOGLE_MAPS_API_KEY:-}" ] || [ "$GOOGLE_MAPS_API_KEY" = "UNCONFIGURED_REPLACE_WITH_RESTRICTED_GOOGLE_GEOCODING_KEY" ]; then
+            echo "Validation is blocked until the retained Google Geocoding secret is configured." >&2
+            exit 2
+          fi
+          aws s3 sync "s3://${RAW_BUCKET_NAME}/references/current/" "$RAW_DIR/" --no-progress
+          aws s3 sync "s3://${RAW_BUCKET_NAME}/incoming/${RUN_ID}/" "$RAW_DIR/" --exclude "*" --include "*.txt" --no-progress
+          aws s3 cp "s3://${RAW_BUCKET_NAME}/incoming/${RUN_ID}/source-manifest.json" "$REVIEW_DIR/source-manifest.json" --no-progress
+          aws s3 cp "s3://${RAW_BUCKET_NAME}/incoming/${RUN_ID}/source-manifest.sig" "$REVIEW_DIR/source-manifest.sig" --no-progress
+          aws kms verify \
+            --key-id "$MANIFEST_SIGNING_KEY_ID" \
+            --message "fileb://${REVIEW_DIR}/source-manifest.json" \
+            --signature "fileb://${REVIEW_DIR}/source-manifest.sig" \
+            --signing-algorithm ECDSA_SHA_256 \
+            --no-cli-pager >/dev/null
+          node infrastructure/mls-ingestion/verify-manifest.mjs "$REVIEW_DIR/source-manifest.json" "$RAW_DIR"
+          COMMERCIAL_FILE_COUNT=0
+          for COMMERCIAL_FILE in idx_bu.txt idx_ci.txt idx_ld.txt; do
+            if [ -f "${RAW_DIR}/${COMMERCIAL_FILE}" ]; then
+              COMMERCIAL_FILE_COUNT=$((COMMERCIAL_FILE_COUNT + 1))
+            fi
+          done
+          if [ "$COMMERCIAL_FILE_COUNT" -ne 0 ] && [ "$COMMERCIAL_FILE_COUNT" -ne 3 ]; then
+            echo "Commercial exports must be present as an all-three-or-none package." >&2
+            exit 2
+          fi
+          if { [ "$COMMERCIAL_FILE_COUNT" -eq 3 ] && [ "$INCLUDES_COMMERCIAL" != "true" ]; } \
+            || { [ "$COMMERCIAL_FILE_COUNT" -eq 0 ] && [ "$INCLUDES_COMMERCIAL" = "true" ]; }; then
+            echo "Commercial source files do not match the signed run metadata." >&2
+            exit 2
+          fi
+        fi
+  build:
+    commands:
+      - |
+        set -euo pipefail
+        if [ "$PIPELINE_ACTION" = "VALIDATE" ]; then
+          if ! [[ "${MAX_GEOCODE_REQUESTS_PER_RUN:-}" =~ ^(-1|[0-9]+)$ ]] \
+            || [ "$MAX_GEOCODE_REQUESTS_PER_RUN" -gt 1200 ]; then
+            echo "MAX_GEOCODE_REQUESTS_PER_RUN must be an integer from -1 through 1200 (-1 means all needed addresses)." >&2
+            exit 2
+          fi
+          npm run mls:clean -- --input "$RAW_DIR" --output "$OUTPUT_DIR" --config mls-compliance.config.json
+          if [ "$INCLUDES_COMMERCIAL" = "true" ]; then
+            node scripts/commercial-pin-cleaner.mjs \
+              --input "$RAW_DIR" \
+              --output "$COMMERCIAL_OUTPUT_DIR" \
+              --config mls-compliance.config.json \
+              --generation "$RUN_ID" \
+              --source-manifest "$REVIEW_DIR/source-manifest.json"
+          fi
+          # The reviewed cache seed is a hard precondition. A missing object,
+          # bad checksum, absent locked-ledger provenance, malformed entry, or
+          # expired entry stops before the paid geocoder can be constructed.
+          aws s3api get-object \
+            --bucket "$COORDINATE_CACHE_BUCKET_NAME" \
+            --key "cache/google-geocoding-cache.json" \
+            --checksum-mode ENABLED \
+            "$CACHE_FILE" > "$CACHE_OBJECT_RESPONSE_FILE"
+          CACHE_REVIEW_JSON=$(node infrastructure/mls-ingestion/validate-coordinate-cache-seed.mjs \
+            --cache "$CACHE_FILE" \
+            --object-response "$CACHE_OBJECT_RESPONSE_FILE")
+          CACHE_ETAG=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).eTag)' "$CACHE_REVIEW_JSON")
+          CACHE_PROVENANCE_LEDGER_SHA256=$(node -e 'process.stdout.write(JSON.parse(process.argv[1]).latestLockedLedgerSha256)' "$CACHE_REVIEW_JSON")
+          export CACHE_ETAG CACHE_PROVENANCE_LEDGER_SHA256
+          test -n "$CACHE_ETAG"
+          test -n "$CACHE_PROVENANCE_LEDGER_SHA256"
+          printf '%s' "$CACHE_ETAG" > "$CACHE_ETAG_FILE"
+          printf '%s' "$CACHE_PROVENANCE_LEDGER_SHA256" > "$CACHE_PROVENANCE_LEDGER_SHA256_FILE"
+          cp "$CACHE_FILE" "${CACHE_FILE}.base"
+          GEOCODE_ARGS=(
+            --output "$OUTPUT_DIR"
+            --cache "$CACHE_FILE"
+            --audit-log "$AUDIT_FILE"
+            --immutable-audit-bucket "$IMMUTABLE_AUDIT_BUCKET_NAME"
+            --immutable-audit-prefix "$IMMUTABLE_AUDIT_EVENT_PREFIX"
+            --preferred-only
+          )
+          if [ "$MAX_GEOCODE_REQUESTS_PER_RUN" -eq -1 ]; then
+            # Each deterministic part covers at most 900 listings. All parts run automatically.
+            GEOCODE_ARGS+=(--allow-large-run --batch-size 900 --batch-index "${MLS_GEOCODE_BATCH_INDEX:-0}")
+          else
+            GEOCODE_ARGS+=(--limit "$MAX_GEOCODE_REQUESTS_PER_RUN")
+          fi
+          case "${MLS_GEOCODE_EMERGENCY_URGENT_ONLY:-false}" in
+            true)
+              if [ "$MAX_GEOCODE_REQUESTS_PER_RUN" -lt 0 ] || [ "$MAX_GEOCODE_REQUESTS_PER_RUN" -gt 1200 ]; then
+                echo "Emergency urgent-only geocoding requires MAX_GEOCODE_REQUESTS_PER_RUN <= 1,200." >&2
+                exit 2
+              fi
+              GEOCODE_ARGS+=(--emergency-urgent-only)
+              ;;
+            false|'')
+              ;;
+            *)
+              echo "MLS_GEOCODE_EMERGENCY_URGENT_ONLY must be true or false." >&2
+              exit 2
+              ;;
+          esac
+          if [ "$MAX_GEOCODE_REQUESTS_PER_RUN" -gt 500 ]; then
+            GEOCODE_ARGS+=(--allow-large-run)
+          fi
+          case "${MLS_LISTING_ONLY:-false}" in
+            true)
+              if [ "$MAX_GEOCODE_REQUESTS_PER_RUN" -ne 0 ]; then
+                echo "Listing-only validation requires MAX_GEOCODE_REQUESTS_PER_RUN=0." >&2
+                exit 2
+              fi
+              echo "Listing-only validation: publishing fresh listing cards with an empty coordinate sidecar."
+              ;;
+            false|'')
+              npm run mls:geocode -- "${GEOCODE_ARGS[@]}"
+              ;;
+            *)
+              echo "MLS_LISTING_ONLY must be true or false." >&2
+              exit 2
+              ;;
+          esac
+          npm run mls:publish
+          npm run check:mls:live
+          if [ "$INCLUDES_COMMERCIAL" = "true" ]; then
+            node infrastructure/mls-ingestion/build-summary.mjs \
+              "${OUTPUT_DIR}/review/mls-ingestion-report.json" \
+              public/mls/mls-search-manifest.json \
+              "$REVIEW_DIR/portal-summary.json" \
+              "${COMMERCIAL_OUTPUT_DIR}/generations/${RUN_ID}/commercial-search-manifest.json"
+          else
+            node infrastructure/mls-ingestion/build-summary.mjs "${OUTPUT_DIR}/review/mls-ingestion-report.json" public/mls/mls-search-manifest.json "$REVIEW_DIR/portal-summary.json"
+          fi
+          aws s3 cp public/mls/mls-coordinate-index.json "s3://${COORDINATE_CACHE_BUCKET_NAME}/runs/${RUN_ID}/mls-coordinate-index.json" --checksum-algorithm SHA256 --content-type application/json --no-progress
+          aws s3 sync public/mls/ "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/public/" --exclude "mls-coordinate-index.json" --delete --no-progress
+          aws s3 sync "${OUTPUT_DIR}/review/" "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/review/" --delete --no-progress
+          aws s3 cp "$REVIEW_DIR/portal-summary.json" "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/review/portal-summary.json" --checksum-algorithm SHA256 --content-type application/json --no-progress
+          if [ "$INCLUDES_COMMERCIAL" = "true" ]; then
+            aws s3 sync "${COMMERCIAL_OUTPUT_DIR}/generations/${RUN_ID}/" \
+              "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/commercial/public/" \
+              --delete \
+              --no-progress
+            aws s3 cp "${COMMERCIAL_OUTPUT_DIR}/commercial-cleaner-report.json" \
+              "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/commercial/review/commercial-cleaner-report.json" \
+              --checksum-algorithm SHA256 \
+              --content-type application/json \
+              --no-progress
+            aws s3 cp "${COMMERCIAL_OUTPUT_DIR}/commercial-source-snapshot.json" \
+              "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/commercial/review/commercial-source-snapshot.json" \
+              --checksum-algorithm SHA256 \
+              --content-type application/json \
+              --no-progress
+          fi
+          for REFERENCE_FILE in areas.txt counties.txt field_reference.txt towns.txt; do
+            if [ -f "${RAW_DIR}/${REFERENCE_FILE}" ] && grep -q "\"name\":\"${REFERENCE_FILE}\"" "$REVIEW_DIR/source-manifest.json"; then
+              aws s3 cp "${RAW_DIR}/${REFERENCE_FILE}" "s3://${RAW_BUCKET_NAME}/references/candidate/${RUN_ID}/${REFERENCE_FILE}" --no-progress
+            fi
+          done
+        else
+          rm -rf public/mls
+          mkdir -p public/mls
+          aws s3 sync "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/public/" public/mls/ --delete --no-progress
+          aws s3 cp "s3://${COORDINATE_CACHE_BUCKET_NAME}/runs/${RUN_ID}/mls-coordinate-index.json" public/mls/mls-coordinate-index.json --no-progress
+          npm run check:mls:live
+          GENERATION_PREFIX="mls/generations/${RUN_ID}"
+          EXISTING_GENERATION_OBJECTS=$(aws s3api list-objects-v2 \
+            --bucket "$DELIVERY_BUCKET_NAME" \
+            --prefix "${GENERATION_PREFIX}/" \
+            --max-keys 1 \
+            --query 'length(Contents || `[]`)' \
+            --output text)
+          if [ "$EXISTING_GENERATION_OBJECTS" = "0" ]; then
+            aws s3 sync public/mls/ "s3://${DELIVERY_BUCKET_NAME}/${GENERATION_PREFIX}/" \
+              --checksum-algorithm SHA256 \
+              --no-progress
+          fi
+
+          # A generation is never selected until every uploaded byte has been
+          # downloaded again and compared with the validated local bundle.
+          REMOTE_VERIFY_DIR="${CODEBUILD_SRC_DIR}/.cloud-mls-remote-verify"
+          rm -rf "$REMOTE_VERIFY_DIR"
+          mkdir -p "$REMOTE_VERIFY_DIR"
+          aws s3 sync "s3://${DELIVERY_BUCKET_NAME}/${GENERATION_PREFIX}/" "$REMOTE_VERIFY_DIR/" --no-progress
+          if ! diff -qr public/mls "$REMOTE_VERIFY_DIR"; then
+            EXISTING_CURRENT_POINTER="${CODEBUILD_SRC_DIR}/.cloud-existing-current.json"
+            ACTIVE_GENERATION=""
+            rm -f "$EXISTING_CURRENT_POINTER"
+            if aws s3 cp "s3://${DELIVERY_BUCKET_NAME}/mls/current.json" "$EXISTING_CURRENT_POINTER" --no-progress; then
+              ACTIVE_GENERATION=$(node infrastructure/mls-ingestion/read-current-generation.mjs "$EXISTING_CURRENT_POINTER")
+            fi
+            test "$ACTIVE_GENERATION" != "$RUN_ID"
+
+            # Only a never-selected, partial upload for this exact run may be
+            # removed. An active or different generation is never touched.
+            aws s3 rm "s3://${DELIVERY_BUCKET_NAME}/${GENERATION_PREFIX}/" --recursive --no-progress
+            aws s3 sync public/mls/ "s3://${DELIVERY_BUCKET_NAME}/${GENERATION_PREFIX}/" \
+              --checksum-algorithm SHA256 \
+              --no-progress
+            rm -rf "$REMOTE_VERIFY_DIR"
+            mkdir -p "$REMOTE_VERIFY_DIR"
+            aws s3 sync "s3://${DELIVERY_BUCKET_NAME}/${GENERATION_PREFIX}/" "$REMOTE_VERIFY_DIR/" --no-progress
+            diff -qr public/mls "$REMOTE_VERIFY_DIR"
+          fi
+
+          # Commercial artifacts have their own immutable namespace and
+          # pointer. Every commercial failure-capable action runs before the
+          # residential pointer switch, so an optional commercial problem can
+          # never replace or take down the active residential generation.
+          if [ "$INCLUDES_COMMERCIAL" = "true" ]; then
+            COMMERCIAL_PUBLIC_DIR="${CODEBUILD_SRC_DIR}/.cloud-commercial-public"
+            COMMERCIAL_GENERATION_PREFIX="commercial/generations/${RUN_ID}"
+            COMMERCIAL_MANIFEST="${COMMERCIAL_PUBLIC_DIR}/commercial-search-manifest.json"
+            rm -rf "$COMMERCIAL_PUBLIC_DIR"
+            mkdir -p "$COMMERCIAL_PUBLIC_DIR"
+            aws s3 sync "s3://${RAW_BUCKET_NAME}/reviewed/${RUN_ID}/commercial/public/" \
+              "$COMMERCIAL_PUBLIC_DIR/" \
+              --delete \
+              --no-progress
+            test -s "$COMMERCIAL_MANIFEST"
+            test -s "${COMMERCIAL_PUBLIC_DIR}/commercial-search-index.json"
+
+            COMMERCIAL_POINTER_FILE="${CODEBUILD_SRC_DIR}/.cloud-commercial-current.json"
+            rm -f "$COMMERCIAL_POINTER_FILE"
+            node infrastructure/mls-ingestion/write-commercial-current-pointer.mjs \
+              "$COMMERCIAL_MANIFEST" \
+              "$RUN_ID" \
+              "$COMMERCIAL_POINTER_FILE"
+
+            EXISTING_COMMERCIAL_GENERATION_OBJECTS=$(aws s3api list-objects-v2 \
+              --bucket "$DELIVERY_BUCKET_NAME" \
+              --prefix "${COMMERCIAL_GENERATION_PREFIX}/" \
+              --max-keys 1 \
+              --query 'length(Contents || `[]`)' \
+              --output text)
+            if [ "$EXISTING_COMMERCIAL_GENERATION_OBJECTS" = "0" ]; then
+              aws s3 sync "$COMMERCIAL_PUBLIC_DIR/" \
+                "s3://${DELIVERY_BUCKET_NAME}/${COMMERCIAL_GENERATION_PREFIX}/" \
+                --checksum-algorithm SHA256 \
+                --no-progress
+            fi
+
+            COMMERCIAL_REMOTE_VERIFY_DIR="${CODEBUILD_SRC_DIR}/.cloud-commercial-remote-verify"
+            rm -rf "$COMMERCIAL_REMOTE_VERIFY_DIR"
+            mkdir -p "$COMMERCIAL_REMOTE_VERIFY_DIR"
+            aws s3 sync "s3://${DELIVERY_BUCKET_NAME}/${COMMERCIAL_GENERATION_PREFIX}/" \
+              "$COMMERCIAL_REMOTE_VERIFY_DIR/" \
+              --no-progress
+            if ! diff -qr "$COMMERCIAL_PUBLIC_DIR" "$COMMERCIAL_REMOTE_VERIFY_DIR"; then
+              EXISTING_COMMERCIAL_POINTER="${CODEBUILD_SRC_DIR}/.cloud-existing-commercial-current.json"
+              ACTIVE_COMMERCIAL_GENERATION=""
+              rm -f "$EXISTING_COMMERCIAL_POINTER"
+              if aws s3 cp "s3://${DELIVERY_BUCKET_NAME}/commercial/current.json" \
+                "$EXISTING_COMMERCIAL_POINTER" \
+                --no-progress; then
+                ACTIVE_COMMERCIAL_GENERATION=$(node infrastructure/mls-ingestion/read-commercial-current-generation.mjs "$EXISTING_COMMERCIAL_POINTER")
+              fi
+              test "$ACTIVE_COMMERCIAL_GENERATION" != "$RUN_ID"
+
+              aws s3 rm "s3://${DELIVERY_BUCKET_NAME}/${COMMERCIAL_GENERATION_PREFIX}/" --recursive --no-progress
+              aws s3 sync "$COMMERCIAL_PUBLIC_DIR/" \
+                "s3://${DELIVERY_BUCKET_NAME}/${COMMERCIAL_GENERATION_PREFIX}/" \
+                --checksum-algorithm SHA256 \
+                --no-progress
+              rm -rf "$COMMERCIAL_REMOTE_VERIFY_DIR"
+              mkdir -p "$COMMERCIAL_REMOTE_VERIFY_DIR"
+              aws s3 sync "s3://${DELIVERY_BUCKET_NAME}/${COMMERCIAL_GENERATION_PREFIX}/" \
+                "$COMMERCIAL_REMOTE_VERIFY_DIR/" \
+                --no-progress
+              diff -qr "$COMMERCIAL_PUBLIC_DIR" "$COMMERCIAL_REMOTE_VERIFY_DIR"
+            fi
+
+            aws s3 cp "$COMMERCIAL_POINTER_FILE" "s3://${DELIVERY_BUCKET_NAME}/commercial/current.json" \
+              --checksum-algorithm SHA256 \
+              --cache-control "no-store, max-age=0" \
+              --content-type application/json \
+              --no-progress
+          fi
+
+          CANDIDATE_COUNT=$(aws s3api list-objects-v2 --bucket "$RAW_BUCKET_NAME" --prefix "references/candidate/${RUN_ID}/" --max-keys 1 --query 'length(Contents || `[]`)' --output text)
+          if [ "$CANDIDATE_COUNT" -gt 0 ]; then
+            aws s3 sync "s3://${RAW_BUCKET_NAME}/references/candidate/${RUN_ID}/" "s3://${RAW_BUCKET_NAME}/references/current/" --no-progress
+          fi
+
+          # Pointer replacement is deliberately the final failure-capable
+          # publication action. Its zero-TTL CloudFront behavior makes a cache
+          # invalidation unnecessary. A complete existing generation can be
+          # re-verified safely after a pre-pointer retry.
+          CURRENT_POINTER_FILE="${CODEBUILD_SRC_DIR}/.cloud-mls-current.json"
+          rm -f "$CURRENT_POINTER_FILE"
+          node infrastructure/mls-ingestion/write-current-pointer.mjs \
+            public/mls/mls-search-manifest.json \
+            "$RUN_ID" \
+            "$CURRENT_POINTER_FILE"
+          aws s3 cp "$CURRENT_POINTER_FILE" "s3://${DELIVERY_BUCKET_NAME}/mls/current.json" \
+            --checksum-algorithm SHA256 \
+            --cache-control "no-store, max-age=0" \
+            --content-type application/json \
+            --no-progress
+        fi
+  post_build:
+    commands:
+      - |
+        set -euo pipefail
+        if [ "${PIPELINE_ACTION:-}" = "VALIDATE" ]; then
+          CACHE_ETAG_FILE="${CODEBUILD_SRC_DIR}/.cloud-coordinate-cache/reviewed-cache.etag"
+          CACHE_PROVENANCE_LEDGER_SHA256_FILE="${CODEBUILD_SRC_DIR}/.cloud-coordinate-cache/reviewed-cache-ledger.sha256"
+          test -s "$CACHE_ETAG_FILE"
+          test -s "$CACHE_PROVENANCE_LEDGER_SHA256_FILE"
+          CACHE_ETAG=$(cat "$CACHE_ETAG_FILE")
+          CACHE_PROVENANCE_LEDGER_SHA256=$(cat "$CACHE_PROVENANCE_LEDGER_SHA256_FILE")
+          test -n "$CACHE_ETAG"
+          test -n "$CACHE_PROVENANCE_LEDGER_SHA256"
+          if [ -s "${AUDIT_FILE:-missing}" ]; then
+            AUDIT_TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
+            AUDIT_ARCHIVE_DIRECTORY="${CODEBUILD_SRC_DIR}/.cloud-geocode-audit/archive"
+            AUDIT_ARCHIVE_NAME="google-geocoding-requests-${AUDIT_TIMESTAMP}.jsonl"
+            AUDIT_CHECKSUM_NAME="google-geocoding-requests-${AUDIT_TIMESTAMP}.sha256"
+            node scripts/archive-geocode-audit.mjs \
+              --ledger "$AUDIT_FILE" \
+              --archive-directory "$AUDIT_ARCHIVE_DIRECTORY" \
+              --timestamp "$AUDIT_TIMESTAMP"
+            AUDIT_SHA256=$(cut -d ' ' -f 1 "${AUDIT_ARCHIVE_DIRECTORY}/${AUDIT_CHECKSUM_NAME}")
+            test "$AUDIT_SHA256" = "$(sha256sum "${AUDIT_ARCHIVE_DIRECTORY}/${AUDIT_ARCHIVE_NAME}" | cut -d ' ' -f 1)"
+            AUDIT_PREFIX="geocoding/${RUN_ID}/${CODEBUILD_BUILD_NUMBER}"
+            aws s3 cp "${AUDIT_ARCHIVE_DIRECTORY}/${AUDIT_ARCHIVE_NAME}" \
+              "s3://${IMMUTABLE_AUDIT_BUCKET_NAME}/${AUDIT_PREFIX}/${AUDIT_ARCHIVE_NAME}" \
+              --checksum-algorithm SHA256 \
+              --content-type application/x-ndjson \
+              --metadata "run-id=${RUN_ID},sha256=${AUDIT_SHA256},schema=move-with-musto.google-geocode-audit.v1,contains-google-results=false" \
+              --no-progress
+            aws s3 cp "${AUDIT_ARCHIVE_DIRECTORY}/${AUDIT_CHECKSUM_NAME}" \
+              "s3://${IMMUTABLE_AUDIT_BUCKET_NAME}/${AUDIT_PREFIX}/${AUDIT_CHECKSUM_NAME}" \
+              --checksum-algorithm SHA256 \
+              --content-type text/plain \
+              --metadata "run-id=${RUN_ID},ledger-sha256=${AUDIT_SHA256},contains-google-results=false" \
+              --no-progress
+            CACHE_PROVENANCE_LEDGER_SHA256="$AUDIT_SHA256"
+          fi
+          # Never carry a successful geocode cache forward unless its request
+          # ledger was first validated, checksummed, and preserved in the
+          # Object-Locked audit bucket.
+          if [ -s "${CACHE_FILE:-missing}" ]; then
+            node infrastructure/mls-ingestion/persist-coordinate-cache.mjs "$CACHE_PROVENANCE_LEDGER_SHA256"
+          fi
+        fi
+        echo "MLS ${PIPELINE_ACTION:-unknown} build finished with succeeding=${CODEBUILD_BUILD_SUCCEEDING:-0}."

@@ -1,0 +1,1586 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Secure operator-driven MLS PIN ingestion, review, and public delivery for Move With Musto.
+
+Parameters:
+  OperatorEmail:
+    Type: String
+    Description: Email address that receives freshness and processing alerts.
+    AllowedPattern: '^[^@\s]+@[^@\s]+\.[^@\s]+$'
+  CognitoDomainPrefix:
+    Type: String
+    Description: Globally unique prefix for the Cognito managed login domain.
+    AllowedPattern: '^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$'
+  DataDomainName:
+    Type: String
+    Default: data.movewithmusto.com
+    AllowedValues: [data.movewithmusto.com]
+    Description: Exact public delivery and operator portal hostname.
+  DataDomainCertificateArn:
+    Type: String
+    AllowedPattern: '^arn:aws:acm:us-east-1:[0-9]{12}:certificate/[0-9a-f-]+$'
+    Description: Evaluator-provided us-east-1 ACM certificate covering the data hostname. No production identifier is supplied.
+  PublicHostedZoneId:
+    Type: String
+    AllowedPattern: '^Z[A-Z0-9]+$'
+    Description: Evaluator-provided Route 53 public hosted zone. No production identifier is supplied.
+  PipelineSourceBucketName:
+    Type: String
+    AllowedPattern: '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'
+    Description: Private versioned S3 bucket containing controlled MLS pipeline source archives.
+  PipelineSourceObjectKey:
+    Type: String
+    AllowedValues: [mls-pipeline-source/source.zip]
+    Description: Stable private key whose immutable version identifies the exact CodeBuild source archive.
+  PipelineSourceVersionId:
+    Type: String
+    MinLength: 1
+    MaxLength: 1024
+    Description: Immutable S3 version ID of the pipeline source archive.
+  PipelineSourceCommitSha:
+    Type: String
+    AllowedPattern: '^[a-f0-9]{40}$'
+    Description: Exact Git commit archived by the controlled deployment process.
+  PipelineSourceSha256:
+    Type: String
+    AllowedPattern: '^[a-f0-9]{64}$'
+    Description: SHA-256 of the complete pipeline source ZIP.
+  PipelineSourceContentLength:
+    Type: Number
+    MinValue: 1
+    Description: Exact byte length of the complete pipeline source ZIP.
+  ImmutableAuditBucketName:
+    Type: String
+    Description: Existing private S3 bucket with versioning and Object Lock default retention already enabled.
+    AllowedPattern: '^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$'
+  MaxGeocodeRequestsPerRun:
+    Type: Number
+    Default: -1
+    MinValue: -1
+    MaxValue: 1200
+    Description: Use -1 to process all missing, changed, or expired service-area addresses; 0 disables requests; 1 through 1200 selects a bounded recovery batch.
+  RawRetentionDays:
+    Type: Number
+    Default: 14
+    MinValue: 3
+    MaxValue: 30
+  FreshnessHours:
+    Type: Number
+    Default: 60
+    MinValue: 24
+    MaxValue: 60
+    Description: Age of the active manifest when the one-per-generation reminder begins, leaving approximately 12 hours before the 72-hour browser rejection.
+  ContactRecipientEmail:
+    Type: String
+    Default: maily@movewithmusto.com
+    AllowedValues: [maily@movewithmusto.com]
+    Description: Fixed recipient for temporary transactional website inquiries.
+  ContactFromEmail:
+    Type: String
+    Default: maily@movewithmusto.com
+    AllowedValues: [maily@movewithmusto.com]
+    Description: Fixed sender under the stack-managed SES domain identity.
+  TurnstileSecretArn:
+    Type: String
+    Default: ''
+    AllowedPattern: '^$|^arn:aws:secretsmanager:[a-z0-9-]+:[0-9]{12}:secret:.+$'
+    NoEcho: true
+    Description: Optional Cloudflare Turnstile secret ARN. Leave empty until the public widget is installed.
+
+Conditions:
+  TurnstileEnabled: !Not [!Equals [!Ref TurnstileSecretArn, '']]
+
+Globals:
+  Function:
+    Runtime: nodejs22.x
+    Architectures: [arm64]
+    MemorySize: 256
+    Timeout: 30
+    Tracing: Active
+    Environment:
+      Variables:
+        RUNS_TABLE_NAME: !Ref RunsTable
+        RAW_BUCKET_NAME: !Ref RawBucket
+        DELIVERY_BUCKET_NAME: !Ref DeliveryBucket
+        ALERTS_TOPIC_ARN: !Ref AlertsTopic
+
+Resources:
+  GoogleMapsApiKeySecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Name: move-with-musto/google-geocoding-api-key
+      Description: Replace this sentinel with the separately restricted server-side Google Geocoding key before validation.
+      SecretString: UNCONFIGURED_REPLACE_WITH_RESTRICTED_GOOGLE_GEOCODING_KEY
+      Tags:
+        - Key: Application
+          Value: MoveWithMustoMlsIngestion
+
+  OperatorUserPool:
+    Type: AWS::Cognito::UserPool
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      UserPoolName: !Sub '${AWS::StackName}-operators'
+      DeletionProtection: ACTIVE
+      UsernameAttributes: [email]
+      AutoVerifiedAttributes: [email]
+      MfaConfiguration: 'ON'
+      EnabledMfas: [SOFTWARE_TOKEN_MFA]
+      UserPoolTags:
+        Application: MoveWithMustoMlsIngestion
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: true
+        InviteMessageTemplate:
+          EmailSubject: Your Move With Musto MLS portal account
+          EmailMessage: 'Your username is {username}. Your temporary password is {####}. Sign in and set up your authenticator app before uploading MLS files.'
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 14
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          RequireUppercase: true
+          TemporaryPasswordValidityDays: 3
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: [email]
+
+  OperatorGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: mls-operators
+      Description: Authorized MLS ingestion and publication operators.
+      UserPoolId: !Ref OperatorUserPool
+
+  OperatorUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub '${AWS::StackName}-portal'
+      UserPoolId: !Ref OperatorUserPool
+      GenerateSecret: false
+      PreventUserExistenceErrors: ENABLED
+      EnableTokenRevocation: true
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows: [code]
+      AllowedOAuthScopes: [openid, email]
+      SupportedIdentityProviders: [COGNITO]
+      CallbackURLs:
+        - !Sub 'https://${DataDomainName}/'
+      LogoutURLs:
+        - !Sub 'https://${DataDomainName}/'
+      AccessTokenValidity: 1
+      IdTokenValidity: 1
+      RefreshTokenValidity: 1
+      TokenValidityUnits:
+        AccessToken: hours
+        IdToken: hours
+        RefreshToken: days
+
+  OperatorUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: !Ref CognitoDomainPrefix
+      UserPoolId: !Ref OperatorUserPool
+
+  ApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/http-api/${AWS::StackName}'
+      RetentionInDays: 30
+
+  OperatorApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","routeKey":"$context.routeKey","status":"$context.status","responseLength":"$context.responseLength","integrationError":"$context.integrationErrorMessage"}'
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 10
+        ThrottlingRateLimit: 5
+      CorsConfiguration:
+        AllowCredentials: false
+        AllowHeaders: [authorization, content-type]
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowOrigins:
+          - !Sub 'https://${DataDomainName}'
+        MaxAge: 600
+      Auth:
+        DefaultAuthorizer: OperatorJwt
+        Authorizers:
+          OperatorJwt:
+            IdentitySource: '$request.header.Authorization'
+            JwtConfiguration:
+              issuer: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${OperatorUserPool}'
+              audience:
+                - !Ref OperatorUserPoolClient
+
+  ContactApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/http-api/${AWS::StackName}-contact'
+      RetentionInDays: 30
+
+  ContactApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: '$default'
+      AccessLogSettings:
+        DestinationArn: !GetAtt ContactApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","routeKey":"$context.routeKey","status":"$context.status","responseLength":"$context.responseLength","integrationError":"$context.integrationErrorMessage"}'
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 2
+        ThrottlingRateLimit: 1
+      CorsConfiguration:
+        AllowCredentials: false
+        AllowHeaders: [content-type]
+        AllowMethods: [POST, OPTIONS]
+        AllowOrigins:
+          - https://movewithmusto.com
+          - https://www.movewithmusto.com
+        MaxAge: 600
+
+  RunsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${AWS::StackName}-runs'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: runId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: runId
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expiresAtEpoch
+        Enabled: true
+
+  ContactRateLimitTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      TableName: !Sub '${AWS::StackName}-contact-rate-limit'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: key
+          AttributeType: S
+      KeySchema:
+        - AttributeName: key
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      TimeToLiveSpecification:
+        AttributeName: expiresAtEpoch
+        Enabled: true
+
+  DoNotContactTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub '${AWS::StackName}-do-not-contact'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: emailHash
+          AttributeType: S
+      KeySchema:
+        - AttributeName: emailHash
+          KeyType: HASH
+      SSESpecification:
+        SSEEnabled: true
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ContactOriginSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Name: !Sub '${AWS::StackName}/contact-origin-token'
+      Description: Private CloudFront-to-contact-Lambda origin verification token.
+      GenerateSecretString:
+        ExcludePunctuation: true
+        IncludeSpace: false
+        PasswordLength: 48
+      Tags:
+        - Key: Application
+          Value: MoveWithMustoWebsiteContact
+
+  RawBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [PUT, HEAD]
+            AllowedOrigins:
+              - !Sub 'https://${DataDomainName}'
+            ExposedHeaders: [ETag, x-amz-checksum-sha256]
+            MaxAge: 600
+      LifecycleConfiguration:
+        Rules:
+          - Id: RemoveRawImports
+            Status: Enabled
+            Prefix: incoming/
+            ExpirationInDays: !Ref RawRetentionDays
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+          - Id: RemoveReviewedStaging
+            Status: Enabled
+            Prefix: reviewed/
+            ExpirationInDays: 14
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+          - Id: RemoveUnselectedReferenceCandidates
+            Status: Enabled
+            Prefix: references/candidate/
+            ExpirationInDays: 14
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+          - Id: RemoveOldReferenceVersions
+            Status: Enabled
+            Prefix: references/
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+
+  CoordinateCacheBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: HardDeleteAllCoordinateDataBeforeThirtyDays
+            Status: Enabled
+            ExpirationInDays: 29
+            AbortIncompleteMultipartUpload:
+              DaysAfterInitiation: 1
+
+  DeliveryBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpirePublicCoordinateSidecar
+            Status: Enabled
+            Prefix: mls/mls-coordinate-index.json
+            ExpirationInDays: 29
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+          - Id: ExpireSupersededMlsGenerations
+            Status: Enabled
+            Prefix: mls/generations/
+            ExpirationInDays: 3
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 1
+          - Id: ExpireSupersededCommercialGenerations
+            Status: Enabled
+            Prefix: commercial/generations/
+            ExpirationInDays: 30
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+          - Id: RemoveOldPublicVersions
+            Status: Enabled
+            NoncurrentVersionExpiration:
+              NoncurrentDays: 7
+
+  RawBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref RawBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt RawBucket.Arn
+              - !Sub '${RawBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+
+  CoordinateCacheBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref CoordinateCacheBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt CoordinateCacheBucket.Arn
+              - !Sub '${CoordinateCacheBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+          - Sid: KeepCoordinateBucketNonVersioned
+            Effect: Deny
+            Principal: '*'
+            Action: s3:PutBucketVersioning
+            Resource: !GetAtt CoordinateCacheBucket.Arn
+
+  PortalOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${AWS::StackName}-delivery-oac'
+        Description: SigV4 access from CloudFront to the private MLS delivery bucket.
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  PortalCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${AWS::StackName}-portal-cache'
+        DefaultTTL: 300
+        MaxTTL: 300
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: true
+          EnableAcceptEncodingGzip: true
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  CurrentPointerCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${AWS::StackName}-current-pointer-no-cache'
+        DefaultTTL: 0
+        MaxTTL: 0
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: false
+          EnableAcceptEncodingGzip: false
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  ContactNoCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub '${AWS::StackName}-contact-no-cache'
+        DefaultTTL: 0
+        MaxTTL: 0
+        MinTTL: 0
+        ParametersInCacheKeyAndForwardedToOrigin:
+          CookiesConfig:
+            CookieBehavior: none
+          EnableAcceptEncodingBrotli: false
+          EnableAcceptEncodingGzip: false
+          HeadersConfig:
+            HeaderBehavior: none
+          QueryStringsConfig:
+            QueryStringBehavior: none
+
+  ContactOriginRequestPolicy:
+    Type: AWS::CloudFront::OriginRequestPolicy
+    Properties:
+      OriginRequestPolicyConfig:
+        Name: !Sub '${AWS::StackName}-contact-origin-request'
+        CookiesConfig:
+          CookieBehavior: none
+        HeadersConfig:
+          HeaderBehavior: whitelist
+          Headers: [Origin, Content-Type, Access-Control-Request-Headers, Access-Control-Request-Method, CloudFront-Viewer-Address]
+        QueryStringsConfig:
+          QueryStringBehavior: none
+
+  ContactResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-contact-response'
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items: [content-type]
+          AccessControlAllowMethods:
+            Items: [POST, OPTIONS]
+          AccessControlAllowOrigins:
+            Items:
+              - https://movewithmusto.com
+              - https://www.movewithmusto.com
+          AccessControlMaxAgeSec: 600
+          OriginOverride: true
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: "default-src 'none'; frame-ancestors 'none';"
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+
+  DeliveryResponseHeadersPolicy:
+    Type: AWS::CloudFront::ResponseHeadersPolicy
+    Properties:
+      ResponseHeadersPolicyConfig:
+        Name: !Sub '${AWS::StackName}-secure-delivery'
+        CorsConfig:
+          AccessControlAllowCredentials: false
+          AccessControlAllowHeaders:
+            Items: ['*']
+          AccessControlAllowMethods:
+            Items: [GET, HEAD, OPTIONS]
+          AccessControlAllowOrigins:
+            Items:
+              - https://movewithmusto.com
+              - https://www.movewithmusto.com
+          AccessControlMaxAgeSec: 600
+          OriginOverride: true
+        SecurityHeadersConfig:
+          ContentSecurityPolicy:
+            ContentSecurityPolicy: !Sub "default-src 'self'; base-uri 'none'; connect-src 'self' https://*.execute-api.${AWS::Region}.amazonaws.com https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com https://*.s3.${AWS::Region}.amazonaws.com; form-action 'self'; frame-ancestors 'none'; img-src 'self' data:; object-src 'none'; script-src 'self'; style-src 'self';"
+            Override: true
+          ContentTypeOptions:
+            Override: true
+          FrameOptions:
+            FrameOption: DENY
+            Override: true
+          ReferrerPolicy:
+            ReferrerPolicy: no-referrer
+            Override: true
+          StrictTransportSecurity:
+            AccessControlMaxAgeSec: 31536000
+            IncludeSubdomains: true
+            Override: true
+
+  DeliveryDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Aliases: [!Ref DataDomainName]
+        Comment: Move With Musto private operator portal and sanitized MLS delivery.
+        Enabled: true
+        HttpVersion: http2and3
+        IPV6Enabled: true
+        PriceClass: PriceClass_100
+        DefaultRootObject: portal/index.html
+        Origins:
+          - Id: private-delivery-bucket
+            DomainName: !GetAtt DeliveryBucket.RegionalDomainName
+            OriginAccessControlId: !Ref PortalOriginAccessControl
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+          - Id: contact-api
+            DomainName: !Sub '${ContactApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
+            OriginCustomHeaders:
+              - HeaderName: X-Move-With-Musto-Origin
+                HeaderValue: !Sub '{{resolve:secretsmanager:${ContactOriginSecret}:SecretString}}'
+            CustomOriginConfig:
+              HTTPSPort: 443
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+        DefaultCacheBehavior:
+          TargetOriginId: private-delivery-bucket
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD, OPTIONS]
+          Compress: true
+          CachePolicyId: !Ref PortalCachePolicy
+          ResponseHeadersPolicyId: !Ref DeliveryResponseHeadersPolicy
+        CacheBehaviors:
+          - PathPattern: mls/current.json
+            TargetOriginId: private-delivery-bucket
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref CurrentPointerCachePolicy
+            ResponseHeadersPolicyId: !Ref DeliveryResponseHeadersPolicy
+          - PathPattern: mls/*
+            TargetOriginId: private-delivery-bucket
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref PortalCachePolicy
+            ResponseHeadersPolicyId: !Ref DeliveryResponseHeadersPolicy
+          - PathPattern: commercial/current.json
+            TargetOriginId: private-delivery-bucket
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref CurrentPointerCachePolicy
+            ResponseHeadersPolicyId: !Ref DeliveryResponseHeadersPolicy
+          - PathPattern: commercial/*
+            TargetOriginId: private-delivery-bucket
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref PortalCachePolicy
+            ResponseHeadersPolicyId: !Ref DeliveryResponseHeadersPolicy
+          - PathPattern: inquiries
+            TargetOriginId: contact-api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref ContactNoCachePolicy
+            OriginRequestPolicyId: !Ref ContactOriginRequestPolicy
+            ResponseHeadersPolicyId: !Ref ContactResponseHeadersPolicy
+          - PathPattern: unsubscribe
+            TargetOriginId: contact-api
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachedMethods: [GET, HEAD, OPTIONS]
+            Compress: true
+            CachePolicyId: !Ref ContactNoCachePolicy
+            OriginRequestPolicyId: !Ref ContactOriginRequestPolicy
+            ResponseHeadersPolicyId: !Ref ContactResponseHeadersPolicy
+        ViewerCertificate:
+          AcmCertificateArn: !Ref DataDomainCertificateArn
+          MinimumProtocolVersion: TLSv1.2_2021
+          SslSupportMethod: sni-only
+
+  DataDomainIpv4Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Ref DataDomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt DeliveryDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  DataDomainIpv6Record:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !Ref DataDomainName
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt DeliveryDistribution.DomainName
+        EvaluateTargetHealth: false
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  DeliveryBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DeliveryBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: '*'
+            Action: 's3:*'
+            Resource:
+              - !GetAtt DeliveryBucket.Arn
+              - !Sub '${DeliveryBucket.Arn}/*'
+            Condition:
+              Bool:
+                aws:SecureTransport: 'false'
+          - Sid: AllowCloudFrontReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${DeliveryBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${DeliveryDistribution}'
+
+  ManifestSigningKey:
+    Type: AWS::KMS::Key
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      Description: Signs MLS source manifests so uploaded file evidence can be verified independently.
+      Enabled: true
+      EnableKeyRotation: false
+      KeySpec: ECC_NIST_P256
+      KeyUsage: SIGN_VERIFY
+      PendingWindowInDays: 30
+      KeyPolicy:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: RootAdministrationAndIamDelegation
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:${AWS::Partition}:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
+  ManifestSigningAlias:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: !Sub 'alias/${AWS::StackName}-manifest-signing'
+      TargetKeyId: !Ref ManifestSigningKey
+
+  AlertsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: !Sub '${AWS::StackName}-alerts'
+      KmsMasterKeyId: alias/aws/sns
+
+  AlertsEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email
+      Endpoint: !Ref OperatorEmail
+      TopicArn: !Ref AlertsTopic
+
+  ContactEmailIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: movewithmusto.com
+      DkimSigningAttributes:
+        NextSigningKeyLength: RSA_2048_BIT
+      Tags:
+        - Key: Application
+          Value: MoveWithMustoWebsiteContact
+
+  ContactDkimRecord1:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !GetAtt ContactEmailIdentity.DkimDNSTokenName1
+      Type: CNAME
+      TTL: 300
+      ResourceRecords: [!GetAtt ContactEmailIdentity.DkimDNSTokenValue1]
+
+  ContactDkimRecord2:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !GetAtt ContactEmailIdentity.DkimDNSTokenName2
+      Type: CNAME
+      TTL: 300
+      ResourceRecords: [!GetAtt ContactEmailIdentity.DkimDNSTokenValue2]
+
+  ContactDkimRecord3:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref PublicHostedZoneId
+      Name: !GetAtt ContactEmailIdentity.DkimDNSTokenName3
+      Type: CNAME
+      TTL: 300
+      ResourceRecords: [!GetAtt ContactEmailIdentity.DkimDNSTokenValue3]
+
+  StackRolePermissionsBoundary:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${AWS::StackName}-role-boundary'
+      Description: Maximum permissions available to application roles created by the MLS ingestion stack.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action:
+              - cloudfront:CreateInvalidation
+              - codebuild:BatchGetBuilds
+              - codebuild:StartBuild
+              - codebuild:StopBuild
+              - dynamodb:GetItem
+              - dynamodb:PutItem
+              - dynamodb:Scan
+              - dynamodb:UpdateItem
+              - kms:Sign
+              - kms:Verify
+              - logs:CreateLogGroup
+              - logs:CreateLogStream
+              - logs:PutLogEvents
+              - s3:DeleteObject
+              - s3:DeleteObjectVersion
+              - s3:GetObject
+              - s3:GetObjectVersion
+              - s3:GetBucketLocation
+              - s3:ListBucket
+              - s3:ListBucketVersions
+              - s3:PutObject
+              - secretsmanager:GetSecretValue
+              - ses:SendEmail
+              - sns:Publish
+              - xray:PutTelemetryRecords
+              - xray:PutTraceSegments
+            Resource: '*'
+
+  LambdaLogsPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Write only this stack's Lambda logs.
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: logs:CreateLogGroup
+            Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:*'
+          - Effect: Allow
+            Action: [logs:CreateLogStream, logs:PutLogEvents]
+            Resource: !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*'
+          - Effect: Allow
+            Action: [xray:PutTraceSegments, xray:PutTelemetryRecords]
+            Resource: '*'
+
+  ContactFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref LambdaLogsPolicy]
+      Policies:
+        - PolicyName: DeliverFixedRecipientWebsiteInquiry
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: ses:SendEmail
+                Resource: !Sub 'arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:identity/movewithmusto.com'
+                Condition:
+                  StringEquals:
+                    ses:FromAddress: !Ref ContactFromEmail
+                  ForAllValues:StringEquals:
+                    ses:Recipients: !Ref ContactRecipientEmail
+              - Effect: Allow
+                Action: dynamodb:UpdateItem
+                Resource: !GetAtt ContactRateLimitTable.Arn
+              - !If
+                - TurnstileEnabled
+                - Effect: Allow
+                  Action: secretsmanager:GetSecretValue
+                  Resource: !Ref TurnstileSecretArn
+                - !Ref AWS::NoValue
+
+  UnsubscribeFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-unsubscribe'
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref LambdaLogsPolicy]
+      Policies:
+        - PolicyName: RecordWebsiteDoNotContactRequest
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: dynamodb:UpdateItem
+                Resource:
+                  - !GetAtt DoNotContactTable.Arn
+                  - !GetAtt ContactRateLimitTable.Arn
+
+  UploadApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref LambdaLogsPolicy]
+      Policies:
+        - PolicyName: UploadAndSignSourcePackage
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem]
+                Resource: !GetAtt RunsTable.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub '${RawBucket.Arn}/incoming/*'
+              - Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${ImmutableAuditBucketName}/source-manifests/*'
+              - Effect: Allow
+                Action: kms:Sign
+                Resource: !GetAtt ManifestSigningKey.Arn
+
+  RunsApiRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref LambdaLogsPolicy]
+      Policies:
+        - PolicyName: ReviewAndStartBuilds
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:Scan, dynamodb:UpdateItem]
+                Resource: !GetAtt RunsTable.Arn
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${RawBucket.Arn}/reviewed/*'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:GetObjectVersion]
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${PipelineSourceBucketName}/mls-pipeline-source/*'
+              - Effect: Allow
+                Action: [codebuild:StartBuild, codebuild:StopBuild]
+                Resource: !GetAtt IngestionBuildProject.Arn
+
+  BuildEventsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref LambdaLogsPolicy]
+      Policies:
+        - PolicyName: ReconcileBuildState
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:UpdateItem]
+                Resource: !GetAtt RunsTable.Arn
+              - Effect: Allow
+                Action: [codebuild:StartBuild, codebuild:StopBuild]
+                Resource: !GetAtt IngestionBuildProject.Arn
+              - Effect: Allow
+                Action: codebuild:BatchGetBuilds
+                Resource:
+                  - !GetAtt IngestionBuildProject.Arn
+                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-pipeline'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${RawBucket.Arn}/reviewed/*'
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref AlertsTopic
+
+  MaintenanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: lambda.amazonaws.com }
+            Action: sts:AssumeRole
+      ManagedPolicyArns: [!Ref LambdaLogsPolicy]
+      Policies:
+        - PolicyName: CleanupAndFreshness
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [dynamodb:GetItem, dynamodb:Scan, dynamodb:UpdateItem]
+                Resource: !GetAtt RunsTable.Arn
+              - Effect: Allow
+                Action: [codebuild:StartBuild, codebuild:StopBuild]
+                Resource: !GetAtt IngestionBuildProject.Arn
+              - Effect: Allow
+                Action: codebuild:BatchGetBuilds
+                Resource:
+                  - !GetAtt IngestionBuildProject.Arn
+                  - !Sub 'arn:${AWS::Partition}:codebuild:${AWS::Region}:${AWS::AccountId}:project/${AWS::StackName}-pipeline'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt RawBucket.Arn
+                Condition:
+                  StringLike:
+                    s3:prefix: ['incoming/*']
+              - Effect: Allow
+                Action: s3:DeleteObject
+                Resource: !Sub '${RawBucket.Arn}/incoming/*'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${RawBucket.Arn}/reviewed/*'
+              - Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub '${DeliveryBucket.Arn}/mls/current.json'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub '${DeliveryBucket.Arn}/mls/generations/*/mls-search-manifest.json'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject, s3:DeleteObjectVersion]
+                Resource: !Sub '${DeliveryBucket.Arn}/mls/generations/*/mls-coordinate-index.json'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: !GetAtt CoordinateCacheBucket.Arn
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource: !Sub '${CoordinateCacheBucket.Arn}/*'
+              - Effect: Allow
+                Action: [s3:ListBucket, s3:ListBucketVersions]
+                Resource: !GetAtt DeliveryBucket.Arn
+                Condition:
+                  StringLike:
+                    s3:prefix: [mls/generations/*/mls-coordinate-index.json]
+              - Effect: Allow
+                Action: cloudfront:CreateInvalidation
+                Resource: !Sub 'arn:${AWS::Partition}:cloudfront::${AWS::AccountId}:distribution/${DeliveryDistribution}'
+              - Effect: Allow
+                Action: sns:Publish
+                Resource: !Ref AlertsTopic
+
+  ContactFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-contact'
+      RetentionInDays: 30
+
+  ContactFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: ContactFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-contact'
+      CodeUri: handlers/
+      Handler: contact.handler
+      Role: !GetAtt ContactFunctionRole.Arn
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          CONTACT_ALLOWED_ORIGINS: 'https://movewithmusto.com,https://www.movewithmusto.com'
+          CONTACT_FROM_EMAIL: !Ref ContactFromEmail
+          CONTACT_ORIGIN_TOKEN: !Sub '{{resolve:secretsmanager:${ContactOriginSecret}:SecretString}}'
+          CONTACT_RECIPIENT_EMAIL: !Ref ContactRecipientEmail
+          CONTACT_RATE_LIMIT_MAXIMUM: '5'
+          CONTACT_RATE_LIMIT_HASH_SALT: !Sub '${AWS::StackId}/${ContactRateLimitTable}'
+          CONTACT_RATE_LIMIT_TABLE_NAME: !Ref ContactRateLimitTable
+          CONTACT_RATE_LIMIT_WINDOW_SECONDS: '600'
+          TURNSTILE_SECRET_ARN: !If [TurnstileEnabled, !Ref TurnstileSecretArn, '']
+      Events:
+        ContactInquiry:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ContactApi
+            Method: POST
+            Path: /inquiries
+
+  UnsubscribeFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-unsubscribe'
+      RetentionInDays: 30
+
+  UnsubscribeFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: UnsubscribeFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-unsubscribe'
+      CodeUri: handlers/
+      Handler: unsubscribe.handler
+      Role: !GetAtt UnsubscribeFunctionRole.Arn
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          CONTACT_ORIGIN_TOKEN: !Sub '{{resolve:secretsmanager:${ContactOriginSecret}:SecretString}}'
+          DO_NOT_CONTACT_HASH_KEY: !Sub '{{resolve:secretsmanager:${ContactOriginSecret}:SecretString}}'
+          DO_NOT_CONTACT_TABLE_NAME: !Ref DoNotContactTable
+          UNSUBSCRIBE_ALLOWED_ORIGINS: 'https://movewithmusto.com,https://www.movewithmusto.com'
+          UNSUBSCRIBE_RATE_LIMIT_HASH_SALT: !Sub '${AWS::StackId}/${ContactRateLimitTable}/unsubscribe'
+          UNSUBSCRIBE_RATE_LIMIT_MAXIMUM: '10'
+          UNSUBSCRIBE_RATE_LIMIT_TABLE_NAME: !Ref ContactRateLimitTable
+          UNSUBSCRIBE_RATE_LIMIT_WINDOW_SECONDS: '600'
+      Events:
+        UnsubscribeRequest:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref ContactApi
+            Method: POST
+            Path: /unsubscribe
+
+  UploadsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-uploads'
+      RetentionInDays: 30
+
+  RunsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-runs'
+      RetentionInDays: 30
+
+  BuildEventsFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-build-events'
+      RetentionInDays: 30
+
+  MaintenanceFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${AWS::StackName}-maintenance'
+      RetentionInDays: 30
+
+  UploadsFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: UploadsFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-uploads'
+      CodeUri: handlers/
+      Handler: uploads.handler
+      Role: !GetAtt UploadApiRole.Arn
+      Environment:
+        Variables:
+          IMMUTABLE_AUDIT_BUCKET_NAME: !Ref ImmutableAuditBucketName
+          MANIFEST_SIGNING_KEY_ID: !GetAtt ManifestSigningKey.Arn
+      Events:
+        CreateRun:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref OperatorApi
+            Method: POST
+            Path: /runs
+        CompleteRun:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref OperatorApi
+            Method: POST
+            Path: /runs/{runId}/complete
+
+  RunsFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: RunsFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-runs'
+      CodeUri: handlers/
+      Handler: runs.handler
+      Role: !GetAtt RunsApiRole.Arn
+      Environment:
+        Variables:
+          BUILD_PROJECT_NAME: !Ref IngestionBuildProject
+          MAX_GEOCODE_REQUESTS_PER_RUN: !Ref MaxGeocodeRequestsPerRun
+          PIPELINE_SOURCE_BUCKET_NAME: !Ref PipelineSourceBucketName
+          PIPELINE_SOURCE_OBJECT_KEY: !Ref PipelineSourceObjectKey
+          PIPELINE_SOURCE_VERSION_ID: !Ref PipelineSourceVersionId
+          PIPELINE_SOURCE_COMMIT_SHA: !Ref PipelineSourceCommitSha
+          PIPELINE_SOURCE_SHA256: !Ref PipelineSourceSha256
+          PIPELINE_SOURCE_CONTENT_LENGTH: !Ref PipelineSourceContentLength
+      Events:
+        ListRuns:
+          Type: HttpApi
+          Properties: { ApiId: !Ref OperatorApi, Method: GET, Path: /runs }
+        ReadRun:
+          Type: HttpApi
+          Properties: { ApiId: !Ref OperatorApi, Method: GET, Path: '/runs/{runId}' }
+        ReportUrl:
+          Type: HttpApi
+          Properties: { ApiId: !Ref OperatorApi, Method: GET, Path: '/runs/{runId}/report-url' }
+        RunAction:
+          Type: HttpApi
+          Properties: { ApiId: !Ref OperatorApi, Method: POST, Path: '/runs/{runId}/action' }
+
+  BuildEventsFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: BuildEventsFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-build-events'
+      CodeUri: handlers/
+      Handler: build-events.handler
+      Role: !GetAtt BuildEventsRole.Arn
+
+  BuildEventsDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: !Sub '${AWS::StackName}-build-events-dlq'
+      KmsMasterKeyId: alias/aws/sqs
+      MessageRetentionPeriod: 1209600
+
+  BuildEventsDeadLetterQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues: [!Ref BuildEventsDeadLetterQueue]
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowOnlyBuildStateRule
+            Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt BuildEventsDeadLetterQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Sub 'arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/${AWS::StackName}-build-state'
+
+  BuildStateRule:
+    Type: AWS::Events::Rule
+    DependsOn: BuildEventsDeadLetterQueuePolicy
+    Properties:
+      Name: !Sub '${AWS::StackName}-build-state'
+      Description: Reconcile terminal CodeBuild results into the operator run record.
+      EventPattern:
+        source: [aws.codebuild]
+        detail-type: [CodeBuild Build State Change]
+        detail:
+          project-name: [!Ref IngestionBuildProject, !Sub '${AWS::StackName}-pipeline']
+          build-status: [SUCCEEDED, FAILED, FAULT, STOPPED, TIMED_OUT]
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt BuildEventsFunction.Arn
+          Id: BuildEventsFunction
+          DeadLetterConfig:
+            Arn: !GetAtt BuildEventsDeadLetterQueue.Arn
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 86400
+            MaximumRetryAttempts: 185
+
+  BuildEventsPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref BuildEventsFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt BuildStateRule.Arn
+
+  BuildEventsDeadLetterAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: A terminal MLS build event exhausted retries and needs manual reconciliation.
+      Namespace: AWS/SQS
+      MetricName: ApproximateNumberOfMessagesVisible
+      Dimensions:
+        - Name: QueueName
+          Value: !GetAtt BuildEventsDeadLetterQueue.QueueName
+      Statistic: Maximum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  BuildEventsFunctionErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: MLS build-event reconciliation Lambda is returning errors.
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref BuildEventsFunction
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      DatapointsToAlarm: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      TreatMissingData: notBreaching
+      AlarmActions: [!Ref AlertsTopic]
+
+  MaintenanceFunction:
+    Type: AWS::Serverless::Function
+    DependsOn: MaintenanceFunctionLogGroup
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-maintenance'
+      CodeUri: handlers/
+      Handler: maintenance.handler
+      Role: !GetAtt MaintenanceRole.Arn
+      Timeout: 60
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          FRESHNESS_HOURS: !Ref FreshnessHours
+          COORDINATE_CACHE_BUCKET_NAME: !Ref CoordinateCacheBucket
+          DELIVERY_DISTRIBUTION_ID: !Ref DeliveryDistribution
+      Events:
+        BuildReconciliation:
+          Type: Schedule
+          Properties:
+            Schedule: rate(15 minutes)
+            Enabled: true
+            Input: '{"mode":"build-reconciliation"}'
+            Description: Reconcile terminal builds and check the one-per-generation MLS freshness reminder.
+        DailyMaintenance:
+          Type: Schedule
+          Properties:
+            Schedule: rate(1 day)
+            Enabled: true
+            Description: Expire abandoned uploads, enforce retention, and alert on a missing or invalid active MLS publication.
+
+  IngestionBuildLogGroup:
+    Type: AWS::Logs::LogGroup
+    DeletionPolicy: Delete
+    Properties:
+      LogGroupName: !Sub '/aws/codebuild/${AWS::StackName}-pipeline'
+      RetentionInDays: 30
+
+  IngestionBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !Ref StackRolePermissionsBoundary
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal: { Service: codebuild.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ProcessReviewedMlsData
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: [logs:CreateLogStream, logs:PutLogEvents]
+                Resource: !Sub '${IngestionBuildLogGroup.Arn}:*'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:GetObjectVersion]
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${PipelineSourceBucketName}/mls-pipeline-source/*'
+              - Effect: Allow
+                Action: s3:GetBucketLocation
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${PipelineSourceBucketName}'
+              - Effect: Allow
+                Action: s3:ListBucket
+                Resource: [!GetAtt RawBucket.Arn, !GetAtt CoordinateCacheBucket.Arn, !GetAtt DeliveryBucket.Arn]
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:DeleteObject]
+                Resource:
+                  - !Sub '${RawBucket.Arn}/incoming/*'
+                  - !Sub '${RawBucket.Arn}/reviewed/*'
+                  - !Sub '${RawBucket.Arn}/references/*'
+                  - !Sub '${CoordinateCacheBucket.Arn}/*'
+                  - !Sub '${DeliveryBucket.Arn}/mls/*'
+                  - !Sub '${DeliveryBucket.Arn}/commercial/*'
+              - Effect: Allow
+                Action: [s3:GetObject, s3:PutObject]
+                Resource: !Sub 'arn:${AWS::Partition}:s3:::${ImmutableAuditBucketName}/geocoding/*'
+              - Effect: Allow
+                Action: kms:Verify
+                Resource: !GetAtt ManifestSigningKey.Arn
+              - Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref GoogleMapsApiKeySecret
+
+  IngestionBuildProject:
+    Type: AWS::CodeBuild::Project
+    UpdateReplacePolicy: Retain
+    Properties:
+      # Complete urgent work in automatically chained parts within the verified
+      # 45-minute runtime. A source-only canary checks the effective runtime.
+      Name: !Sub '${AWS::StackName}-pipeline-v2'
+      Description: Replacement on-demand validation and explicitly approved MLS publication project.
+      ServiceRole: !GetAtt IngestionBuildRole.Arn
+      QueuedTimeoutInMinutes: 60
+      TimeoutInMinutes: 45
+      ConcurrentBuildLimit: 1
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Cache:
+        Type: NO_CACHE
+      Source:
+        Type: S3
+        Location: !Sub '${PipelineSourceBucketName}/${PipelineSourceObjectKey}'
+        BuildSpec: infrastructure/mls-ingestion/buildspec.yml
+      SourceVersion: !Ref PipelineSourceVersionId
+      Environment:
+        Type: ARM_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux-aarch64-standard:3.0
+        ImagePullCredentialsType: CODEBUILD
+        PrivilegedMode: false
+        EnvironmentVariables:
+          - Name: RAW_BUCKET_NAME
+            Type: PLAINTEXT
+            Value: !Ref RawBucket
+          - Name: COORDINATE_CACHE_BUCKET_NAME
+            Type: PLAINTEXT
+            Value: !Ref CoordinateCacheBucket
+          - Name: DELIVERY_BUCKET_NAME
+            Type: PLAINTEXT
+            Value: !Ref DeliveryBucket
+          - Name: IMMUTABLE_AUDIT_BUCKET_NAME
+            Type: PLAINTEXT
+            Value: !Ref ImmutableAuditBucketName
+          - Name: MANIFEST_SIGNING_KEY_ID
+            Type: PLAINTEXT
+            Value: !GetAtt ManifestSigningKey.Arn
+          - Name: MAX_GEOCODE_REQUESTS_PER_RUN
+            Type: PLAINTEXT
+            Value: !Ref MaxGeocodeRequestsPerRun
+          - Name: GOOGLE_MAPS_API_KEY
+            Type: SECRETS_MANAGER
+            Value: !Ref GoogleMapsApiKeySecret
+          - Name: PIPELINE_SOURCE_BUCKET_NAME
+            Type: PLAINTEXT
+            Value: !Ref PipelineSourceBucketName
+          - Name: PIPELINE_SOURCE_OBJECT_KEY
+            Type: PLAINTEXT
+            Value: !Ref PipelineSourceObjectKey
+          - Name: PIPELINE_SOURCE_VERSION_ID
+            Type: PLAINTEXT
+            Value: !Ref PipelineSourceVersionId
+          - Name: PIPELINE_SOURCE_COMMIT_SHA
+            Type: PLAINTEXT
+            Value: !Ref PipelineSourceCommitSha
+          - Name: PIPELINE_SOURCE_SHA256
+            Type: PLAINTEXT
+            Value: !Ref PipelineSourceSha256
+          - Name: PIPELINE_SOURCE_CONTENT_LENGTH
+            Type: PLAINTEXT
+            Value: !Ref PipelineSourceContentLength
+      LogsConfig:
+        CloudWatchLogs:
+          Status: ENABLED
+          GroupName: !Ref IngestionBuildLogGroup
+          StreamName: ingestion
+
+Outputs:
+  GoogleMapsApiKeySecretArn:
+    Description: Retained secret whose sentinel must be replaced with the separately restricted server-side key before validation.
+    Value: !Ref GoogleMapsApiKeySecret
+  MaxGeocodeRequestsPerRun:
+    Description: Geocoding policy acknowledged by the operator; -1 means all needed addresses with no request cap.
+    Value: !Ref MaxGeocodeRequestsPerRun
+  PublicInquiryEndpoint:
+    Description: Set NEXT_PUBLIC_INQUIRY_FORM_ACTION to this temporary transactional SES endpoint.
+    Value: !Sub 'https://${DataDomainName}/inquiries'
+  PublicUnsubscribeEndpoint:
+    Description: Public form endpoint that records a keyed email hash in the internal do-not-contact table.
+    Value: !Sub 'https://${DataDomainName}/unsubscribe'
+  ContactEmailIdentityName:
+    Description: SES domain identity used only for fixed-recipient website inquiry notifications.
+    Value: !Ref ContactEmailIdentity
+  SesSandboxConstraint:
+    Description: Sandbox delivery succeeds only while both sender and recipient are covered by a verified SES identity in this Region.
+    Value: 'SES sandbox: fixed sender and recipient are both under the stack-managed movewithmusto.com identity.'
+  OperatorPortalUrl:
+    Description: Bookmark this URL for the MLS operator portal after uploading its static assets.
+    Value: !Sub 'https://${DataDomainName}/'
+  OperatorApiUrl:
+    Value: !Sub 'https://${OperatorApi}.execute-api.${AWS::Region}.${AWS::URLSuffix}'
+  CognitoLoginDomain:
+    Value: !Sub 'https://${CognitoDomainPrefix}.auth.${AWS::Region}.amazoncognito.com'
+  CognitoUserPoolId:
+    Value: !Ref OperatorUserPool
+  CognitoClientId:
+    Value: !Ref OperatorUserPoolClient
+  OperatorGroupName:
+    Value: !Ref OperatorGroup
+  RawBucketName:
+    Value: !Ref RawBucket
+  CoordinateCacheBucketName:
+    Value: !Ref CoordinateCacheBucket
+  PublicDeliveryBucketName:
+    Value: !Ref DeliveryBucket
+  PublicMlsBaseUrl:
+    Value: !Sub 'https://${DataDomainName}/mls/'
+  PublicCommercialBaseUrl:
+    Description: Separately versioned commercial listing delivery; its freshness never gates residential MLS data.
+    Value: !Sub 'https://${DataDomainName}/commercial/'
+  DeliveryDistributionId:
+    Value: !Ref DeliveryDistribution
+  PipelineSourceArtifact:
+    Description: Immutable self-hosted source archive selected by the ingestion build project.
+    Value: !Sub 's3://${PipelineSourceBucketName}/${PipelineSourceObjectKey}?versionId=${PipelineSourceVersionId}'
+  PipelineSourceCommitSha:
+    Value: !Ref PipelineSourceCommitSha
+  PipelineSourceSha256:
+    Value: !Ref PipelineSourceSha256
+  IngestionBuildProjectName:
+    Description: Physical replacement project whose effective timeout must pass the source-only canary before paid validation.
+    Value: !Ref IngestionBuildProject
+  SourceManifestSigningKeyArn:
+    Value: !GetAtt ManifestSigningKey.Arn

@@ -1,0 +1,68 @@
+[
+  {
+    "slug": "greater-boston",
+    "name": "Greater Boston",
+    "summary": "Boston and the connected inner-ring cities and towns between Route 2, Route 16, and the harbor.",
+    "coreTowns": [
+      "Arlington", "Belmont", "Boston", "Brookline", "Cambridge", "Chelsea", "Everett",
+      "Malden", "Medford", "Newton", "Revere", "Somerville", "Watertown"
+    ],
+    "extendedTowns": ["Winthrop"]
+  },
+  {
+    "slug": "metro-north",
+    "name": "Burlington & Route 128",
+    "summary": "Burlington and nearby Route 128 and I-93 communities with direct connections across the northern suburbs.",
+    "coreTowns": [
+      "Bedford", "Burlington", "Lexington", "Melrose", "North Reading", "Reading",
+      "Stoneham", "Wakefield", "Waltham", "Wilmington", "Winchester", "Woburn"
+    ]
+  },
+  {
+    "slug": "greater-lowell-nashoba",
+    "name": "Greater Lowell & Nashoba",
+    "summary": "The Lowell area and Nashoba Valley communities linked by Routes 2, 3, and I-495.",
+    "coreTowns": [
+      "Billerica", "Carlisle", "Chelmsford", "Dracut", "Dunstable", "Littleton", "Lowell",
+      "Tewksbury", "Tyngsborough", "Westford"
+    ],
+    "extendedTowns": ["Ayer", "Groton", "Harvard", "Pepperell", "Shirley", "Townsend"]
+  },
+  {
+    "slug": "merrimack-valley",
+    "name": "Merrimack Valley",
+    "summary": "Lower Merrimack Valley cities and towns extending from the I-93 corridor to the New Hampshire line and coast.",
+    "coreTowns": [
+      "Andover", "Boxford", "Georgetown", "Groveland", "Haverhill", "Lawrence", "Methuen", "North Andover"
+    ],
+    "extendedTowns": ["Amesbury", "Merrimac", "Newbury", "Newburyport", "Salisbury", "West Newbury"]
+  },
+  {
+    "slug": "north-shore",
+    "name": "North Shore",
+    "summary": "The coastal and inland North Shore from Saugus and Lynn through Cape Ann and the Ipswich corridor.",
+    "coreTowns": [
+      "Beverly", "Danvers", "Lynn", "Lynnfield", "Marblehead", "Middleton", "Peabody", "Salem", "Saugus", "Swampscott"
+    ],
+    "extendedTowns": [
+      "Essex", "Gloucester", "Hamilton", "Ipswich", "Manchester-by-the-Sea", "Nahant", "Rockport", "Rowley", "Topsfield", "Wenham"
+    ]
+  },
+  {
+    "slug": "route-2-495",
+    "name": "Route 2 & MetroWest",
+    "summary": "Route 2 and MetroWest communities west and southwest of Burlington, connected through I-95 and I-495.",
+    "coreTowns": [
+      "Acton", "Concord", "Framingham", "Lincoln", "Maynard", "Natick", "Needham", "Sudbury", "Wayland", "Wellesley", "Weston"
+    ],
+    "extendedTowns": ["Ashland", "Bolton", "Boxborough", "Dover", "Hudson", "Marlborough", "Sherborn", "Stow"],
+    "searchOnlyTowns": ["Worcester"]
+  },
+  {
+    "slug": "south-shore",
+    "name": "South of Boston & Route 128",
+    "summary": "Communities south of Boston and along the southern Route 128 arc, including established coastal edge markets.",
+    "coreTowns": ["Dedham", "Milton", "Norwood", "Westwood"],
+    "extendedTowns": ["Braintree", "Canton", "Cohasset", "Hingham", "Quincy", "Randolph", "Weymouth"]
+  }
+]

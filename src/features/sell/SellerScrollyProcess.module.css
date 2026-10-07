@@ -1,0 +1,672 @@
+.scrollySection {
+    --seller-panel-offset: calc(5rem + clamp(0.75rem, 2.5svh, 1.35rem));
+    --seller-panel-bottom-gap: clamp(0.85rem, 2.5svh, 1.35rem);
+
+    overflow: visible;
+    padding: var(--space-lg) var(--space-gutter);
+    background:
+        linear-gradient(90deg, rgba(13, 15, 14, 0.035), transparent 42%),
+        #fff;
+}
+
+.shell {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.72fr) minmax(0, 1fr);
+    gap: clamp(2rem, 5vw, 5rem);
+    align-items: start;
+    max-width: 90rem;
+    margin: 0 auto;
+}
+
+.shell > *,
+.stepContent > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.stickyPanel {
+    position: sticky;
+    top: var(--seller-panel-offset);
+    display: grid;
+    min-height: min(42rem, calc(100svh - var(--seller-panel-offset) - var(--seller-panel-bottom-gap)));
+    max-height: calc(100svh - var(--seller-panel-offset) - var(--seller-panel-bottom-gap));
+    align-content: start;
+    gap: clamp(0.9rem, 1.8vh, 1.25rem);
+    border: 1px solid rgba(198, 173, 118, 0.22);
+    border-radius: var(--radius-md);
+    padding: clamp(1rem, 2vw, 1.45rem);
+    background: var(--color-charcoal);
+    color: var(--color-ivory);
+    box-shadow: var(--shadow-lg);
+    overflow-x: hidden;
+    overflow-wrap: anywhere;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+}
+
+.eyebrow,
+.stepLabel,
+.activeNumber,
+.detailGrid span {
+    color: var(--color-gold);
+    font-size: var(--text-xs);
+    font-weight: 820;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.eyebrow {
+    margin: 0 0 0.8rem;
+}
+
+.stickyPanel h2,
+.activeCard h3,
+.stepScene h3 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+    text-wrap: balance;
+}
+
+.stickyPanel h2 {
+    max-width: 13ch;
+    font-size: clamp(2.05rem, 3.45vw, 3.65rem);
+    line-height: 0.96;
+}
+
+.panelCopy {
+    max-width: 25rem;
+    margin: 0.75rem 0 0;
+    color: rgba(250, 247, 242, 0.68);
+    font-size: clamp(0.94rem, 1.12vw, 1.05rem);
+    line-height: 1.45;
+}
+
+.activeCard {
+    display: grid;
+    gap: 0.5rem;
+    border-top: 1px solid rgba(250, 247, 242, 0.14);
+    border-bottom: 1px solid rgba(250, 247, 242, 0.14);
+    padding: clamp(0.8rem, 1.65vh, 1.05rem) 0;
+}
+
+.activeCard h3 {
+    font-size: clamp(1.5rem, 2.25vw, 2.35rem);
+    line-height: 1;
+}
+
+.activeCard p {
+    margin: 0;
+    color: rgba(250, 247, 242, 0.72);
+    font-size: clamp(0.9rem, 1.05vw, 1rem);
+    line-height: 1.42;
+}
+
+.progressWrap {
+    height: 0.22rem;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: rgba(250, 247, 242, 0.14);
+}
+
+.progressFill {
+    display: block;
+    width: var(--progress);
+    height: 100%;
+    border-radius: inherit;
+    background: var(--color-gold);
+    transition: width var(--duration-base) var(--ease-out);
+}
+
+.stepNav {
+    display: grid;
+    gap: clamp(0.3rem, 0.8vh, 0.55rem);
+    margin: 0.15rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.stepNav button {
+    display: grid;
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+    gap: 0.7rem;
+    width: 100%;
+    align-items: center;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: rgba(250, 247, 242, 0.62);
+    cursor: pointer;
+    font: inherit;
+    font-size: clamp(0.92rem, 1.18vw, 1.05rem);
+    font-weight: 720;
+    min-height: clamp(2.55rem, 4.7vh, 3.15rem);
+    padding: 0.5rem 0.56rem;
+    text-align: left;
+    transition:
+        background var(--duration-fast) var(--ease-out),
+        color var(--duration-fast) var(--ease-out),
+        transform var(--duration-fast) var(--ease-out);
+}
+
+.stepNav button:hover,
+.stepNav button:focus-visible,
+.stepNav .navActive {
+    background: rgba(250, 247, 242, 0.08);
+    color: var(--color-ivory);
+    transform: translateX(0.18rem);
+}
+
+.stepNav span {
+    color: var(--color-gold);
+    font-size: clamp(0.72rem, 0.9vw, 0.82rem);
+    letter-spacing: 0.12em;
+}
+
+.stepTrack {
+    display: grid;
+    gap: 0;
+    padding-bottom: min(18vh, 10rem);
+}
+
+.stepScene {
+    display: grid;
+    min-width: 0;
+    max-width: 100%;
+    align-items: start;
+    border-bottom: 1px solid rgba(23, 23, 19, 0.1);
+    padding-block: clamp(1.6rem, 4svh, 2.75rem);
+    transition: border-color var(--duration-base) var(--ease-out);
+}
+
+.stepScene[data-active='true'] {
+    border-bottom-color: rgba(23, 23, 19, 0.14);
+}
+
+.stepInner {
+    display: grid;
+    min-width: 0;
+    max-width: 100%;
+    gap: clamp(0.8rem, 1.5vw, 1.1rem);
+    max-width: 72rem;
+}
+
+.stepHeader {
+    display: grid;
+    gap: clamp(0.5rem, 1.1vw, 0.8rem);
+}
+
+.stepScene h3 {
+    max-width: 12ch;
+    color: var(--color-charcoal-soft);
+    font-size: clamp(3rem, 6.6vw, 6.6rem);
+    line-height: 0.88;
+    overflow-wrap: anywhere;
+}
+
+.summary {
+    max-width: 54rem;
+    margin: 0;
+    color: rgba(23, 23, 19, 0.72);
+    font-size: clamp(1.05rem, 1.65vw, 1.34rem);
+    line-height: 1.48;
+}
+
+.stepContent {
+    display: grid;
+    grid-template-columns: minmax(17rem, 0.82fr) minmax(0, 1fr);
+    gap: clamp(1rem, 2.5vw, 1.6rem);
+    align-items: start;
+}
+
+.stepCopyStack {
+    display: grid;
+    min-width: 0;
+    max-width: 100%;
+    align-content: start;
+    gap: clamp(0.65rem, 1.25vw, 0.9rem);
+}
+
+.stepVisual {
+    align-self: start;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid rgba(23, 23, 19, 0.11);
+    border-radius: var(--radius-md);
+    background:
+        linear-gradient(135deg, rgba(167, 123, 77, 0.12), transparent 42%),
+        var(--color-ivory-warm);
+    transition:
+        border-color var(--duration-base) var(--ease-out),
+        box-shadow var(--duration-base) var(--ease-out);
+}
+
+.stepScene:not([data-active='true']) .stepVisual {
+    border-color: rgba(23, 23, 19, 0.065);
+}
+
+.stepScene[data-active='true'] .stepVisual {
+    border-color: rgba(23, 23, 19, 0.15);
+    box-shadow: 0 0.65rem 1.6rem rgba(23, 23, 19, 0.055);
+}
+
+.stepVisual figcaption {
+    margin: 0;
+}
+
+.photoVisual {
+    display: grid;
+    min-height: clamp(16rem, 25vw, 21rem);
+    grid-template-rows: minmax(12rem, 1fr) auto;
+}
+
+.photoFrame {
+    position: relative;
+    min-height: 13rem;
+    overflow: hidden;
+    opacity: 0.68;
+    transition: opacity var(--duration-base) var(--ease-out);
+}
+
+.stepScene[data-active='true'] .photoFrame {
+    opacity: 1;
+}
+
+.photoFrame img {
+    object-fit: cover;
+}
+
+.photoVisual figcaption {
+    display: grid;
+    gap: 0.6rem;
+    padding: clamp(0.85rem, 1.6vw, 1.05rem);
+}
+
+.photoVisual figcaption > span,
+.marketVisual figcaption,
+.timelineVisual figcaption,
+.matrixVisual figcaption {
+    color: var(--color-gold);
+    font-size: var(--text-xs);
+    font-weight: 820;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.photoVisual ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.photoVisual li {
+    border: 1px solid rgba(23, 23, 19, 0.1);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.5);
+    color: rgba(23, 23, 19, 0.72);
+    font-weight: 720;
+    padding: 0.55rem 0.65rem;
+}
+
+.marketVisual,
+.timelineVisual,
+.matrixVisual {
+    display: grid;
+    gap: clamp(0.7rem, 1.45vw, 1rem);
+    align-content: start;
+    padding: clamp(0.85rem, 1.75vw, 1.1rem);
+}
+
+.marketLensGrid {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.marketLensCard {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.68rem;
+    align-items: start;
+    border: 1px solid rgba(23, 23, 19, 0.1);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.54);
+    padding: 0.62rem;
+}
+
+.marketLensCard > span {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(167, 123, 77, 0.16);
+    color: var(--color-gold);
+    font-size: 0.7rem;
+    font-weight: 820;
+    letter-spacing: 0.08em;
+}
+
+.marketLensCard div {
+    display: grid;
+    min-width: 0;
+    gap: 0.3rem;
+}
+
+.marketLensCard strong {
+    color: var(--color-charcoal-soft);
+    font-size: clamp(0.96rem, 1.15vw, 1.08rem);
+    font-weight: 820;
+    line-height: 1.08;
+}
+
+.marketLensCard p {
+    margin: 0;
+    color: rgba(23, 23, 19, 0.64);
+    font-size: clamp(0.8rem, 0.95vw, 0.9rem);
+    line-height: 1.3;
+}
+
+.timelineVisual ol {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.timelineVisual li {
+    position: relative;
+    display: grid;
+    grid-template-columns: 4.8rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.68rem 0 0.68rem 1rem;
+}
+
+.timelineVisual li::before {
+    content: '';
+    position: absolute;
+    top: 1.25rem;
+    left: 0;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    background: var(--color-gold);
+    box-shadow: 0 0 0 0.38rem rgba(167, 123, 77, 0.14);
+}
+
+.timelineVisual li + li {
+    border-top: 1px solid rgba(23, 23, 19, 0.1);
+}
+
+.timelineVisual li > span {
+    color: var(--color-charcoal-soft);
+    font-weight: 820;
+}
+
+.timelineVisual p {
+    margin: 0;
+    color: rgba(23, 23, 19, 0.68);
+}
+
+.offerMatrix {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+}
+
+.offerColumn {
+    display: grid;
+    grid-template-columns: minmax(4.2rem, max-content) minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: center;
+    border: 1px solid rgba(23, 23, 19, 0.1);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.58);
+    padding: 0.58rem 0.68rem;
+}
+
+.offerColumn > span {
+    color: var(--color-charcoal-soft);
+    font-family: var(--font-heading);
+    font-size: clamp(0.92rem, 1.18vw, 1.04rem);
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.offerColumn dl {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.32rem;
+    margin: 0;
+    min-width: 0;
+}
+
+.offerColumn div {
+    display: grid;
+    min-width: 0;
+    gap: 0.12rem;
+}
+
+.offerColumn dt {
+    color: rgba(23, 23, 19, 0.48);
+    font-size: 0.45rem;
+    font-weight: 820;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.offerColumn dd {
+    margin: 0;
+    color: rgba(23, 23, 19, 0.72);
+    font-size: clamp(0.68rem, 0.78vw, 0.78rem);
+    font-weight: 720;
+    white-space: nowrap;
+}
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.68rem;
+}
+
+.detailGrid div {
+    border: 1px solid rgba(23, 23, 19, 0.11);
+    border-radius: var(--radius-md);
+    background: var(--color-ivory-warm);
+    padding: clamp(0.9rem, 1.6vw, 1.12rem);
+}
+
+.detailGrid p {
+    margin: 0.42rem 0 0;
+    color: rgba(23, 23, 19, 0.7);
+    line-height: 1.45;
+}
+
+.outcome {
+    position: relative;
+    align-self: start;
+    max-width: none;
+    margin: 0;
+    color: rgba(23, 23, 19, 0.72);
+    font-weight: 720;
+    line-height: 1.42;
+    padding-left: 1rem;
+}
+
+.outcome::before {
+    content: '';
+    position: absolute;
+    top: 0.28em;
+    left: 0;
+    width: 3px;
+    height: 2.35em;
+    background: var(--color-gold);
+}
+
+@media (max-width: 1080px) and (min-width: 981px) {
+    .offerColumn,
+    .offerColumn dl {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 980px) {
+    .shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stickyPanel {
+        position: relative;
+        top: auto;
+        min-height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+
+    .stickyPanel h2 {
+        max-width: 14ch;
+    }
+
+    .stepScene {
+        min-height: auto;
+        border: 1px solid rgba(23, 23, 19, 0.12);
+        border-radius: var(--radius-md);
+        padding: clamp(1.2rem, 4vw, 2rem);
+        opacity: 1;
+        transform: none;
+    }
+
+    .stepTrack {
+        padding-bottom: 0;
+    }
+
+    .stepContent {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .stepVisual {
+        min-height: 15rem;
+    }
+}
+
+@media (max-width: 680px) {
+    .scrollySection {
+        padding: var(--space-md) var(--space-gutter);
+    }
+
+    .stickyPanel {
+        gap: 1rem;
+    }
+
+    .stickyPanel h2 {
+        font-size: clamp(2.1rem, 10vw, 3.55rem);
+    }
+
+    .stepScene h3 {
+        font-size: clamp(2.2rem, 13vw, 4.2rem);
+    }
+
+    .detailGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .photoVisual ul,
+    .offerMatrix {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .offerColumn,
+    .offerColumn dl {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .offerColumn > span,
+    .offerColumn dt,
+    .offerColumn dd {
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .stepNav button {
+        grid-template-columns: 2rem minmax(0, 1fr);
+    }
+}
+
+@media (max-height: 760px) and (min-width: 981px) {
+    .scrollySection {
+        --seller-panel-offset: calc(5rem + 0.65rem);
+        --seller-panel-bottom-gap: 0.65rem;
+
+        padding-top: var(--space-md);
+        padding-bottom: var(--space-md);
+    }
+
+    .stickyPanel {
+        gap: 0.55rem;
+        padding: 0.75rem;
+    }
+
+    .eyebrow {
+        margin-bottom: 0.45rem;
+    }
+
+    .stickyPanel h2 {
+        max-width: 16ch;
+        font-size: clamp(1.8rem, 3vw, 3rem);
+        line-height: 0.98;
+    }
+
+    .panelCopy {
+        margin-top: 0.55rem;
+        font-size: 0.82rem;
+        line-height: 1.35;
+    }
+
+    .activeCard {
+        gap: 0.3rem;
+        padding: 0.52rem 0;
+    }
+
+    .activeCard h3 {
+        font-size: clamp(1.25rem, 2vw, 1.8rem);
+    }
+
+    .activeCard p {
+        font-size: 0.82rem;
+        line-height: 1.32;
+    }
+
+    .progressWrap {
+        height: 0.18rem;
+    }
+
+    .stepNav {
+        gap: 0.18rem;
+    }
+
+    .stepNav button {
+        min-height: 1.95rem;
+        grid-template-columns: 1.8rem minmax(0, 1fr);
+        gap: 0.55rem;
+        font-size: 0.84rem;
+        padding: 0.28rem 0.42rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .progressFill,
+    .stepNav button,
+    .stepScene,
+    .stepVisual,
+    .photoFrame {
+        transition: none;
+    }
+}

@@ -1,0 +1,15 @@
+version: 0.2
+
+env:
+  shell: bash
+
+phases:
+  build:
+    commands:
+      - |
+        set -euo pipefail
+        test "${CODEBUILD_SOURCE_VERSION:-}" = "$PIPELINE_SOURCE_VERSION_ID"
+        test "${CODEBUILD_SOURCE_REPO_URL:-}" = "${PIPELINE_SOURCE_BUCKET_NAME}/${PIPELINE_SOURCE_OBJECT_KEY}"
+        test -f infrastructure/mls-ingestion/buildspec.yml
+        node infrastructure/mls-ingestion/geocode-batch-canary.mjs
+        echo "Pinned S3 source and replacement CodeBuild project canary passed."

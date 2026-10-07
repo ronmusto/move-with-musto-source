@@ -1,0 +1,69 @@
+{
+  "name": "move-with-musto-real-estate-site",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3019",
+    "build": "npm run check:hosting && next build && npm run hosting:stage",
+    "build:app": "npm run build",
+    "start": "node scripts/serve-static-export.mjs",
+    "start:e2e": "node scripts/serve-e2e.mjs",
+    "lint": "npm run check:brand && npm run check:hosting && npm run lint:code && npm run typecheck",
+    "lint:code": "eslint src scripts e2e infrastructure/mls-ingestion --max-warnings 0",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage:full": "vitest run --coverage --config vitest.full-coverage.config.ts",
+    "deps:infra": "npm --prefix infrastructure/mls-ingestion ci --ignore-scripts && npm --prefix infrastructure/mls-ingestion/handlers ci --ignore-scripts",
+    "test:infra": "npm --prefix infrastructure/mls-ingestion test",
+    "check:infra": "npm --prefix infrastructure/mls-ingestion run validate",
+    "test:preview": "node --test scripts/tests/serve-static-export.test.mjs",
+    "check:public": "node scripts/check-public-source.mjs",
+    "check:brand": "node scripts/check-realtor-brand-rules.mjs",
+    "check:hosting": "node scripts/check-amplify-hosting-config.mjs",
+    "hosting:stage": "node scripts/check-amplify-hosting-config.mjs --stage",
+    "test:e2e": "node scripts/run-e2e.mjs",
+    "test:e2e:smoke": "node scripts/run-e2e.mjs",
+    "test:e2e:headed": "node scripts/run-e2e.mjs --headed",
+    "test:e2e:extended": "node scripts/run-e2e.mjs --extended"
+  },
+  "dependencies": {
+    "@googlemaps/markerclusterer": "^2.6.2",
+    "next": "^16.3.8",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "overrides": {
+    "postcss": "8.5.28",
+    "vite": "8.0.16"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.54.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/d3-geo": "^3.1.0",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.11",
+    "d3-geo": "^3.1.1",
+    "eslint": "^10.12.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^16.5.0",
+    "jsdom": "^26.1.0",
+    "sharp": "^0.35.5",
+    "tsx": "^4.8.1",
+    "typescript": "^5",
+    "typescript-eslint": "^8.71.0",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=22.13 <23",
+    "npm": ">=10"
+  },
+  "license": "SEE LICENSE IN LICENSE",
+  "description": "Source edition of Move With Musto: static real-estate UI, tested MLS processing, and serverless architecture."
+}

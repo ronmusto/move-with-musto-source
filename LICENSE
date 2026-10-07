@@ -1,0 +1,94 @@
+Move With Musto Source Evaluation License 1.0
+
+Copyright (c) 2026 Renaldo Musto. All rights reserved, except for the limited
+permissions below and rights in separately licensed third-party material.
+
+1. Scope and ownership
+
+"Software" means the original Move With Musto source code, documentation, and
+other original material supplied with this license. Renaldo Musto (the
+"Licensor") retains ownership of the Software. This license makes the Software
+available for evaluation; it is not an open-source license.
+
+2. Permitted evaluation
+
+Subject to these terms, the Licensor grants you a nonexclusive, worldwide,
+royalty-free, nontransferable license to:
+
+- view, download, and retain copies of the Software;
+- install dependencies, compile, run, test, and privately modify the Software
+  solely to evaluate its design, quality, or the Licensor's engineering work;
+- share copies privately with people in your organization who participate in
+  that same evaluation and who receive and comply with this license; and
+- include limited excerpts in private hiring, code-review, or evaluation
+  feedback, retaining attribution where reasonably practicable.
+
+Evaluation includes recruitment and technical due diligence by commercial
+organizations. It does not include using the Software to operate a business,
+serve customers, or build a product. Run evaluation copies locally or in a
+private test environment that is not available to the public. You are
+responsible for obtaining any data, credentials, and external service
+permissions needed for your own tests.
+
+3. Restrictions
+
+Except as expressly permitted above, by section 5, or by applicable law, you
+may not:
+
+- use the Software, or adaptations of it, in production, in a product or
+  service, or for commercial operations;
+- publish, distribute, sell, sublicense, or offer hosted access to the
+  Software or adaptations of it;
+- copy or incorporate the Software into another project for a purpose other
+  than the permitted private evaluation;
+- use the Software to train or fine-tune machine-learning models or to
+  construct a training dataset; or
+- remove copyright, license, attribution, or third-party notices.
+
+Changes made for evaluation remain subject to these restrictions to the
+extent they incorporate the Software. This license does not transfer ownership
+of your independently created material to the Licensor. It grants no trademark
+rights and no right to imply endorsement. Permissions beyond this license
+require a separate written agreement with the Licensor.
+
+4. Third-party material and excluded data
+
+Third-party code, dependencies, fonts, geography, trademarks, and other
+separately identified material remain governed by their respective licenses
+and rights. This license neither replaces nor restricts permissions granted
+under those licenses. See NOTICE.md and the notices accompanying that material.
+
+No rights in MLS feeds, listing records, property photographs, client
+documents, private services, or credentials are granted by this license.
+Material omitted from the source edition is not made available by reference
+to its filename or by its use in the separately operated website.
+
+5. Hosting-platform terms and statutory rights
+
+If the Licensor publishes the Software on GitHub, rights separately granted
+under the applicable GitHub terms, including viewing and forking through that
+service, remain effective. This license does not revoke, expand, or replace
+those platform grants. A fork does not itself grant additional permission to
+deploy or commercially reuse the Software outside those grants.
+
+Nothing in this license limits rights that cannot be restricted under
+applicable law.
+
+6. Termination
+
+These evaluation permissions terminate if you materially breach this license.
+Upon termination, stop using and delete copies held under this license,
+except copies you are legally required to retain and copies held under an
+independent permission. Sections concerning ownership, restrictions,
+third-party rights, platform terms, and disclaimers survive termination.
+
+7. Disclaimer
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, TITLE, AND NONINFRINGEMENT. TO THE MAXIMUM EXTENT PERMITTED BY LAW,
+THE LICENSOR IS NOT LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING
+FROM THE SOFTWARE OR ITS USE, WHETHER IN CONTRACT, TORT, OR OTHERWISE.
+
+For permission beyond evaluation, contact Renaldo Musto:
+renaldomusto@gmail.com

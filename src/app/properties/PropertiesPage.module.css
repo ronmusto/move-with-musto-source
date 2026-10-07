@@ -1,0 +1,308 @@
+.page {
+    background: #f9f6f1;
+    color: #171818;
+    font-family: var(--font-body);
+}
+
+.hero {
+    padding: 6rem var(--space-gutter) 3rem;
+    background: #f9f6f1;
+}
+
+.heroShell {
+    display: grid;
+    grid-template-columns: minmax(0, 0.88fr) minmax(24rem, 1.05fr);
+    gap: 3rem;
+    max-width: 76rem;
+    margin: 0 auto;
+    align-items: center;
+}
+
+.heroCopy {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.eyebrow {
+    margin: 0;
+    color: #a67c52;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.hero h1,
+.approachIntro h2,
+.consultCard h2 {
+    margin: 0;
+    color: #171818;
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+.hero h1 {
+    max-width: 11ch;
+    font-size: 4.75rem;
+    line-height: 0.98;
+}
+
+.heroLead {
+    max-width: 42rem;
+    margin: 0;
+    border-left: 2px solid #a67c52;
+    color: rgba(23, 24, 24, 0.68);
+    font-size: 1.15rem;
+    font-style: italic;
+    line-height: 1.8;
+    padding-left: 1.5rem;
+}
+
+.heroActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 0.5rem;
+}
+
+.primaryButton,
+.secondaryButton {
+    display: inline-flex;
+    min-height: 3rem;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #a67c52;
+    border-radius: 0.25rem;
+    font-size: 0.78rem;
+    font-weight: 850;
+    letter-spacing: 0.13em;
+    padding: 0.9rem 1.3rem;
+    text-decoration: none;
+    text-transform: uppercase;
+    transition:
+        background-color 180ms ease,
+        border-color 180ms ease,
+        color 180ms ease,
+        transform 180ms ease;
+}
+
+.primaryButton {
+    background: #a67c52;
+    color: #fffaf5;
+}
+
+.secondaryButton {
+    background: transparent;
+    color: #8a623e;
+}
+
+.primaryButton:hover,
+.secondaryButton:hover {
+    transform: translateY(-2px);
+}
+
+.primaryButton:hover {
+    background: #171818;
+    border-color: #171818;
+}
+
+.secondaryButton:hover {
+    border-color: #171818;
+    color: #171818;
+}
+
+.heroImagePanel {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(23, 24, 24, 0.12);
+    border-radius: 0.5rem;
+    background: #fffaf5;
+    box-shadow: 0 1.5rem 4rem rgba(23, 24, 24, 0.08);
+}
+
+.heroImagePanel::before {
+    position: absolute;
+    inset: 0.75rem;
+    z-index: 1;
+    border: 1px solid rgba(255, 250, 245, 0.82);
+    content: '';
+    pointer-events: none;
+}
+
+.heroImage {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 11;
+    object-fit: cover;
+    object-position: center;
+}
+
+.heroFacts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    max-width: 76rem;
+    margin: 3.5rem auto 0;
+    border-top: 1px solid rgba(23, 24, 24, 0.12);
+    border-bottom: 1px solid rgba(23, 24, 24, 0.12);
+}
+
+.heroFacts div {
+    padding: 1.3rem 1.4rem;
+}
+
+.heroFacts div + div {
+    border-left: 1px solid rgba(23, 24, 24, 0.12);
+}
+
+.heroFacts dt {
+    color: #a67c52;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.heroFacts dd {
+    margin: 0.45rem 0 0;
+    color: rgba(23, 24, 24, 0.72);
+    line-height: 1.5;
+}
+
+.approachSection {
+    padding: 6rem var(--space-gutter);
+    background: #fffaf5;
+}
+
+.approachShell {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.78fr) minmax(0, 1fr);
+    gap: 4rem;
+    max-width: 76rem;
+    margin: 0 auto;
+    align-items: start;
+}
+
+.approachIntro {
+    display: grid;
+    gap: 1.2rem;
+}
+
+.approachIntro h2,
+.consultCard h2 {
+    font-size: 3rem;
+    line-height: 1.06;
+}
+
+.approachIntro p:not(.eyebrow),
+.consultCard p {
+    margin: 0;
+    color: rgba(23, 24, 24, 0.68);
+    font-size: 1.02rem;
+    line-height: 1.75;
+}
+
+.approachGrid {
+    display: grid;
+    gap: 1rem;
+}
+
+.approachGrid article {
+    display: grid;
+    grid-template-columns: 3.2rem minmax(0, 0.55fr) minmax(0, 1fr);
+    gap: 1.25rem;
+    align-items: baseline;
+    border-top: 1px solid rgba(23, 24, 24, 0.14);
+    padding: 1.25rem 0;
+}
+
+.approachGrid span {
+    color: #a67c52;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+}
+
+.approachGrid h3 {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.approachGrid p {
+    margin: 0;
+    color: rgba(23, 24, 24, 0.65);
+    line-height: 1.65;
+}
+
+.consultSection {
+    padding: 0 var(--space-gutter) 6rem;
+    background: #fffaf5;
+}
+
+.consultCard {
+    display: grid;
+    grid-template-columns: minmax(0, 0.9fr) minmax(18rem, 0.9fr) auto;
+    gap: 2rem;
+    max-width: 76rem;
+    margin: 0 auto;
+    align-items: center;
+    border-top: 0.35rem solid #a67c52;
+    background: #f9f6f1;
+    padding: 2.2rem;
+}
+
+@media (max-width: 980px) {
+    .heroShell,
+    .approachShell,
+    .consultCard {
+        grid-template-columns: 1fr;
+    }
+
+    .hero h1 {
+        max-width: 12ch;
+        font-size: 3.55rem;
+    }
+
+    .heroFacts {
+        grid-template-columns: 1fr;
+    }
+
+    .heroFacts div + div {
+        border-top: 1px solid rgba(23, 24, 24, 0.12);
+        border-left: 0;
+    }
+}
+
+@media (max-width: 620px) {
+    .hero {
+        padding-top: 4.5rem;
+    }
+
+    .hero h1,
+    .approachIntro h2,
+    .consultCard h2 {
+        font-size: 2.7rem;
+    }
+
+    .heroLead {
+        padding-left: 1rem;
+    }
+
+    .primaryButton,
+    .secondaryButton {
+        width: 100%;
+    }
+
+    .approachGrid article {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .consultCard {
+        padding: 1.5rem;
+    }
+}
